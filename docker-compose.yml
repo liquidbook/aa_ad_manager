@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-wp_agile_alliance}
+      MYSQL_USER: ${DB_USER:-agilealliance}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_me_too}
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "${WP_PORT:-8090}:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${DB_NAME:-wp_agile_alliance}
+      WORDPRESS_DB_USER: ${DB_USER:-agilealliance}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-change_me}
+    volumes:
+      # Persist wp-content (uploads, plugins, themes) between restarts.
+      - wp_content:/var/www/html/wp-content
+
+      # Bind-mount this plugin repo into WordPress.
+      - ./:/var/www/html/wp-content/plugins/agile-alliance-ad-manager
+
+      # Optional: bind-mount a theme build output folder (uncomment + set path)
+      # - ${AA_THEME_PATH}:/var/www/html/wp-content/themes/agile-alliance-theme
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "${PHPMYADMIN_PORT:-9097}:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+
+volumes:
+  db_data:
+  wp_content:
+

@@ -1,0 +1,17 @@
+.aa-ad-manager-header {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.aa-ad-manager-header .aa-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aa-ad-manager-header .aa-logo {
+  width: 40px;
+  height: 40px;
+}
+

@@ -1,0 +1,50 @@
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+env.local
+
+# --- WordPress core (if you ever vendor a WP install into this repo) ---
+/wordpress/
+/wp/
+/wp-admin/
+/wp-includes/
+/wp-content/cache/
+/wp-content/upgrade/
+/wp-content/ai1wm-backups/
+/wp-content/backups*/
+/wp-content/uploads/
+/wp-content/debug.log
+
+# --- Plugin build/deps (if used) ---
+/node_modules/
+/vendor/
+/composer.lock
+/package-lock.json
+/pnpm-lock.yaml
+/yarn.lock
+
+# --- Build artifacts ---
+*.zip
+*.tar.gz
+*.map
+/dist/
+/build/
+
+# --- Logs / temp ---
+*.log
+*.tmp
+*.temp
+.cache/
+
+# --- IDE / OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.iml
+
+# --- Local tooling ---
+.phpunit.result.cache
+
