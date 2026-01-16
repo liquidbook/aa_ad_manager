@@ -341,25 +341,88 @@ function aa_ad_manager_enqueue_admin_scripts($hook) {
         return;
     }
 
-    // Only on the aa_ads list table (edit.php).
-    if ($screen->post_type !== 'aa_ads' || $screen->base !== 'edit') {
+    // Only on aa_ads list table (edit.php) and edit screen (post.php).
+    if ($screen->post_type !== 'aa_ads' || !in_array($screen->base, array('edit', 'post'), true)) {
         return;
     }
 
     // Shared admin styles (re-used by options/reports pages).
+    $admin_css_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/css/admin.css';
+    $admin_css_ver = file_exists($admin_css_path) ? (string) filemtime($admin_css_path) : AA_AD_MANAGER_VERSION;
+
     wp_enqueue_style(
         'aa-ad-manager-admin',
         AA_AD_MANAGER_PLUGIN_URL . 'assets/css/admin.css',
         array(),
-        AA_AD_MANAGER_VERSION
+        $admin_css_ver
     );
 
+    // List table scripts only.
+    if ($screen->base === 'edit') {
+        $list_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/ads/aa-admin-scripts.js';
+        $list_js_ver = file_exists($list_js_path) ? (string) filemtime($list_js_path) : AA_AD_MANAGER_VERSION;
+
+        wp_enqueue_script(
+            'aa-admin-scripts',
+            AA_AD_MANAGER_PLUGIN_URL . 'assets/js/ads/aa-admin-scripts.js',
+            array('jquery'),
+            $list_js_ver,
+            true
+        );
+        return;
+    }
+
+    // Edit screen: only load performance assets when Performance tab is active.
+    if ($screen->base === 'post' && function_exists('aa_ad_manager_get_current_ad_edit_tab')) {
+        if (aa_ad_manager_get_current_ad_edit_tab() !== 'performance') {
+            return;
+        }
+    }
+
+    $post_id = 0;
+    if (isset($_GET['post'])) {
+        $post_id = (int) $_GET['post'];
+    } elseif (isset($GLOBALS['post']) && $GLOBALS['post'] instanceof WP_Post) {
+        $post_id = (int) $GLOBALS['post']->ID;
+    }
+
+    // Chart.js vendor bundle (stored in-plugin).
+    $chart_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/vendor/chart.umd.min.js';
+    $chart_js_ver = file_exists($chart_js_path) ? (string) filemtime($chart_js_path) : AA_AD_MANAGER_VERSION;
+
     wp_enqueue_script(
-        'aa-admin-scripts',
-        AA_AD_MANAGER_PLUGIN_URL . 'assets/js/ads/aa-admin-scripts.js',
-        array('jquery'),
-        AA_AD_MANAGER_VERSION,
+        'aa-ad-manager-chartjs',
+        AA_AD_MANAGER_PLUGIN_URL . 'assets/js/vendor/chart.umd.min.js',
+        array(),
+        $chart_js_ver,
         true
+    );
+
+    $perf_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/ads/aa-admin-performance.js';
+    $perf_js_ver = file_exists($perf_js_path) ? (string) filemtime($perf_js_path) : AA_AD_MANAGER_VERSION;
+
+    wp_enqueue_script(
+        'aa-ad-manager-admin-performance',
+        AA_AD_MANAGER_PLUGIN_URL . 'assets/js/ads/aa-admin-performance.js',
+        array('jquery', 'aa-ad-manager-chartjs'),
+        $perf_js_ver,
+        true
+    );
+
+    $initial_data = null;
+    if ($post_id > 0 && function_exists('aa_ad_manager_get_ad_performance_data') && function_exists('aa_ad_manager_perf_parse_range')) {
+        $initial_data = aa_ad_manager_get_ad_performance_data($post_id, aa_ad_manager_perf_parse_range('30'));
+    }
+
+    wp_localize_script(
+        'aa-ad-manager-admin-performance',
+        'aaAdPerfSettings',
+        array(
+            'ajaxUrl'     => admin_url('admin-ajax.php'),
+            'nonce'       => wp_create_nonce('aa_ad_perf_nonce'),
+            'adId'        => (int) $post_id,
+            'initialData' => $initial_data,
+        )
     );
 }
 add_action('admin_enqueue_scripts', 'aa_ad_manager_enqueue_admin_scripts');

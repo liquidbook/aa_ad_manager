@@ -134,3 +134,152 @@ button.aa-ad-thumb-link {
   cursor: pointer;
 }
 
+/* aa_ads edit screen tabs (AA Ads Fields / Performance). */
+.aa-ad-manager-edit-tabs {
+  margin-bottom: 10px;
+}
+
+/* Toggle main metabox content via body class. */
+.aa-ad-tab--fields #aa_ad_manager_performance {
+  display: none;
+}
+
+.aa-ad-tab--performance .acf-postbox {
+  display: none !important;
+}
+
+/* Performance dashboard (aa_ads edit screen). */
+.aa-perf {
+  margin-top: 6px;
+}
+
+.aa-perf__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.aa-perf__subtitle {
+  color: #646970;
+  font-weight: 400;
+}
+
+.aa-perf__range select,
+.aa-perf__mini-select {
+  max-width: 170px;
+}
+
+.aa-perf__grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.aa-perf__grid--top {
+  grid-template-columns: 1fr;
+}
+
+.aa-perf__grid--bottom {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .aa-perf__grid--bottom {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.aa-perf__card {
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.aa-perf__card canvas {
+  width: 100% !important;
+  height: 240px !important;
+}
+
+.aa-perf__card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.aa-perf__totals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  border-top: 1px solid #f0f0f1;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.aa-perf__total-label,
+.aa-perf__summary-label,
+.aa-perf__mini-label {
+  display: block;
+  color: #646970;
+  font-size: 12px;
+}
+
+.aa-perf__total-value,
+.aa-perf__summary-value,
+.aa-perf__mini-value {
+  font-weight: 600;
+}
+
+.aa-perf__summary-row {
+  border-top: 1px solid #f0f0f1;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.aa-perf__list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.aa-perf__list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f1;
+}
+
+.aa-perf__list li:last-child {
+  border-bottom: 0;
+}
+
+.aa-perf__list a {
+  text-decoration: none;
+}
+
+.aa-perf__mini-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  border-top: 1px solid #f0f0f1;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.aa-perf__mini-card {
+  background: #f6f7f7;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.aa-perf__status {
+  margin-top: 8px;
+  color: #646970;
+  font-size: 12px;
+}
+

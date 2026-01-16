@@ -29,6 +29,7 @@ require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/ad-selection.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/ajax.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/admin-options.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/admin-reports.php';
+require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/admin-performance.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/acf-json.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/compat.php';
 
