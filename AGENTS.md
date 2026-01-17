@@ -88,6 +88,16 @@ When changing the `aa_ads` list table:
 
 ---
 
+### Admin UI work (settings/tools pages — WP-native look)
+When adding or updating plugin **wp-admin** pages (options/tools/reports):
+- **Prefer WordPress-native UI** over custom frameworks: use core patterns/classes like `postbox`/`metabox-holder` (`#poststuff`), `form-table`, `notice`, `button button-primary`, `dashicons`, etc. Aim for an **ACF-like** feel by leaning on core admin styles.
+- **Keep CSS minimal and scoped**: if you add styling, namespace it (e.g. `.aa-*`) and avoid global overrides that can conflict with wp-admin.
+- **Avoid external UI frameworks** (Bootstrap/Tailwind/etc.) unless explicitly requested; they often fight wp-admin CSS and increase maintenance burden.
+- **Don’t ship “dead” settings**: if a setting is not currently used by plugin logic, hide it from the UI and show a short WP notice explaining it’s reserved for future work (avoid confusing admins).
+- **Use core scripts when needed**: for classic metabox behavior (collapse/expand), enqueue `postbox` and initialize toggles for your page.
+
+---
+
 ### Browser MCP / Playwright usage (admin validation)
 Use browser automation tools for **verification**, not as a replacement for good code review.
 

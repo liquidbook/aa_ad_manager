@@ -5,6 +5,13 @@ if (!defined('ABSPATH')) {
 }
 
 function aa_ad_manager_enqueue_loader() {
+    wp_enqueue_style(
+        'aa-ad-manager-frontend',
+        AA_AD_MANAGER_PLUGIN_URL . 'assets/css/frontend.css',
+        array(),
+        AA_AD_MANAGER_VERSION
+    );
+
     wp_enqueue_script(
         'aa-ad-loader',
         AA_AD_MANAGER_PLUGIN_URL . 'assets/js/ads/aa-ad-loader.js',

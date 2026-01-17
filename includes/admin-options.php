@@ -16,27 +16,8 @@ function aa_ad_manager_register_settings() {
     register_setting('aa_ad_manager_options_group', 'aa_ad_manager_options', array(
         'sanitize_callback' => 'aa_ad_manager_sanitize_options',
     ));
-
-    add_settings_section(
-        'aa_ad_manager_general_section',
-        'General Settings',
-        'aa_ad_manager_general_section_callback',
-        'aa_ad_manager_options'
-    );
-
-    add_settings_field(
-        'reportable_post_types',
-        'Reportable Post Types',
-        'aa_ad_manager_reportable_post_types_field_callback',
-        'aa_ad_manager_options',
-        'aa_ad_manager_general_section'
-    );
 }
 add_action('admin_init', 'aa_ad_manager_register_settings');
-
-function aa_ad_manager_general_section_callback() {
-    echo '<p>Select which public post types should be treated as "reportable archives" by the Ad Manager tool.</p>';
-}
 
 function aa_ad_manager_sanitize_options($options) {
     if (!is_array($options)) {
@@ -44,31 +25,38 @@ function aa_ad_manager_sanitize_options($options) {
     }
 
     $valid_post_types = get_post_types(array('public' => true), 'names');
-    $clean = array();
+    $excluded = array();
 
-    if (isset($options['reportable_post_types']) && is_array($options['reportable_post_types'])) {
-        foreach ($options['reportable_post_types'] as $pt) {
+    // NOTE: This option is currently not exposed in the UI (kept for future reporting work).
+    if (isset($options['excluded_post_types']) && is_array($options['excluded_post_types'])) {
+        foreach ($options['excluded_post_types'] as $pt) {
             if (in_array($pt, $valid_post_types, true)) {
-                $clean[] = $pt;
+                $excluded[] = $pt;
             }
         }
     }
 
-    $options['reportable_post_types'] = $clean;
-    return $options;
-}
-
-function aa_ad_manager_reportable_post_types_field_callback() {
-    $options = get_option('aa_ad_manager_options');
-    $selected = isset($options['reportable_post_types']) ? (array) $options['reportable_post_types'] : array();
-
-    $post_types = get_post_types(array('public' => true), 'objects');
-    echo '<select name="aa_ad_manager_options[reportable_post_types][]" multiple style="height:150px;">';
-    foreach ($post_types as $pt_name => $pt_obj) {
-        $is_selected = in_array($pt_name, $selected, true) ? 'selected' : '';
-        echo '<option value="' . esc_attr($pt_name) . '" ' . $is_selected . '>' . esc_html($pt_obj->labels->name) . '</option>';
+    // Back-compat migration: older installs stored an inclusion list `reportable_post_types`.
+    // If an old inclusion list exists and the new exclusion list is empty, infer exclusions
+    // as "all public post types" minus "reportable post types".
+    if (empty($excluded) && isset($options['reportable_post_types']) && is_array($options['reportable_post_types'])) {
+        $reportable = array();
+        foreach ($options['reportable_post_types'] as $pt) {
+            if (in_array($pt, $valid_post_types, true)) {
+                $reportable[] = $pt;
+            }
+        }
+        $excluded = array_values(array_diff($valid_post_types, $reportable));
     }
-    echo '</select>';
+
+    $options['excluded_post_types'] = array_values(array_unique($excluded));
+
+    // Stop persisting the legacy key once saved.
+    if (isset($options['reportable_post_types'])) {
+        unset($options['reportable_post_types']);
+    }
+
+    return $options;
 }
 
 function aa_ad_manager_add_options_page() {
@@ -95,6 +83,12 @@ function aa_ad_manager_enqueue_admin_assets($hook) {
         array(),
         AA_AD_MANAGER_VERSION
     );
+
+    // Enable classic WP postbox UI behavior on our options screen (collapse/expand).
+    if ($page === 'aa-ad-manager-options') {
+        wp_enqueue_script('postbox');
+        wp_add_inline_script('postbox', "jQuery(function($){ if (typeof postbox !== 'undefined') { postbox.add_postbox_toggles('aa_ad_manager_options'); } });");
+    }
 }
 add_action('admin_enqueue_scripts', 'aa_ad_manager_enqueue_admin_assets');
 
@@ -103,21 +97,46 @@ function aa_ad_manager_options_page_html() {
         return;
     }
 
-    echo '<div class="wrap aa-ad-manager-wrap">';
+    echo '<div class="wrap aa-ad-manager-wrap aa-settings-page">';
+
     echo '<div class="aa-ad-manager-header">';
-    echo '<div class="aa-header-left">';
-    echo '<img src="' . esc_url(AA_AD_MANAGER_PLUGIN_URL . 'assets/images/ad-manage-icon.png') . '" alt="Ad Manager Logo" class="aa-logo">';
-    echo '<h1>Ad Manager Settings</h1>';
-    echo '</div>';
-    echo '</div>';
+    echo '  <div class="aa-header-left">';
+    echo '    <img src="' . esc_url(AA_AD_MANAGER_PLUGIN_URL . 'assets/images/ad-manage-icon.png') . '" alt="Ad Manager Logo" class="aa-logo">';
+    echo '    <div>';
+    echo '      <h1 style="margin: 0;">Ad Manager Settings</h1>';
+    echo '      <p class="description" style="margin: 4px 0 0;">Configure reporting behavior for pages where ads are displayed.</p>';
+    echo '    </div>';
+    echo '  </div>';
     echo '</div>';
 
-    echo '<div class="wrap">';
     echo '<form method="post" action="options.php">';
     settings_fields('aa_ad_manager_options_group');
-    do_settings_sections('aa_ad_manager_options');
-    submit_button();
+    settings_errors();
+
+    // Classic WP metabox layout (similar to ACF screens).
+    echo '<div id="poststuff">';
+    echo '  <div id="post-body" class="metabox-holder columns-1">';
+    echo '    <div id="post-body-content">';
+
+    echo '      <div class="postbox">';
+    echo '        <div class="postbox-header">';
+    echo '          <h2 class="hndle ui-sortable-handle"><span>General Settings</span></h2>';
+    echo '        </div>';
+    echo '        <div class="inside">';
+    echo '          <div class="notice notice-info inline" style="margin: 0;">';
+    echo '            <p><strong>No settings available yet.</strong> This screen will be used for reporting configuration once the reporting model is finalized.</p>';
+    echo '            <p class="description" style="margin: 0;">Ad impressions/clicks are logged automatically when ads are served/clicked.</p>';
+    echo '          </div>';
+
+    echo '        </div>';
+    echo '      </div>';
+
+    echo '    </div>';
+    echo '  </div>';
+    echo '</div>';
+
     echo '</form>';
+
     echo '</div>';
 }
 

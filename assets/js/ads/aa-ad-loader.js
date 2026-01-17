@@ -1,4 +1,67 @@
 jQuery(document).ready(function($) {
+    function aaEnsureDataLayer() {
+        if (!window.dataLayer) {
+            window.dataLayer = [];
+        }
+        return window.dataLayer;
+    }
+
+    function aaIsOutboundUrl(url) {
+        try {
+            var u = new URL(url, window.location.href);
+            return u.origin !== window.location.origin;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function aaExtractAdPayload(container, $adLink) {
+        var adId = $adLink && $adLink.data('ad-id') ? $adLink.data('ad-id') : null;
+        var pageId = $adLink && $adLink.data('page-id') ? $adLink.data('page-id') : (container.data('page-id') || 0);
+        var placementKey = $adLink && $adLink.data('placement-key') ? $adLink.data('placement-key') : (container.data('placement-key') || '');
+        var href = $adLink && $adLink.attr('href') ? $adLink.attr('href') : '';
+
+        // Optional creative URL for image-based ads.
+        var imgSrc = '';
+        try {
+            var img = $adLink && $adLink.length ? $adLink.find('img').get(0) : null;
+            imgSrc = img && img.getAttribute('src') ? img.getAttribute('src') : '';
+        } catch (e) {
+            imgSrc = '';
+        }
+
+        return {
+            ad_id: adId,
+            page_id: pageId,
+            placement_key: placementKey,
+            destination_url: href,
+            is_outbound: href ? aaIsOutboundUrl(href) : false,
+            creative_url: imgSrc,
+            ad_size: container.data('ad-size') || '',
+            page_type: container.data('page-type') || '',
+            page_context: container.data('page-context') || ''
+        };
+    }
+
+    function aaPushAnalyticsEvent(eventName, payload) {
+        // Always push to dataLayer for GTM-based sites (safe no-op elsewhere).
+        aaEnsureDataLayer().push($.extend({ event: eventName }, payload || {}));
+
+        // Also emit to GA4 directly if gtag exists (sites without GTM).
+        if (typeof window.gtag === 'function') {
+            try {
+                window.gtag('event', eventName, $.extend(
+                    {
+                        transport_type: 'beacon'
+                    },
+                    payload || {}
+                ));
+            } catch (e) {
+                // Swallow errors to avoid breaking ad clicks.
+            }
+        }
+    }
+
     $('.aa-ad-container').each(function() {
         var container = $(this);
 
@@ -42,14 +105,27 @@ jQuery(document).ready(function($) {
                 if (response && response.success && response.data && response.data.ad_html) {
                     container.html(response.data.ad_html);
 
+                    // Impression analytics: after injection, if we have ad metadata.
+                    if (!container.data('aa-impression-sent')) {
+                        var $adLinkForImpression = container.find('.aa-ad-click').first();
+                        if ($adLinkForImpression.length) {
+                            aaPushAnalyticsEvent('aa_ad_impression', aaExtractAdPayload(container, $adLinkForImpression));
+                            container.data('aa-impression-sent', true);
+                        }
+                    }
+
                     container.find('.aa-ad-click').on('click', function(e) {
                         e.preventDefault();
 
-                        var adId = $(this).data('ad-id');
+                        var $adLink = $(this);
+                        var adId = $adLink.data('ad-id');
                         var clickPageId = $(this).data('page-id') || pageId;
                         var clickPlacementKey = $(this).data('placement-key') || placementKey || '';
                         var refererUrl = document.referrer || '';
-                        var redirectUrl = $(this).attr('href');
+                        var redirectUrl = $adLink.attr('href');
+
+                        // Click analytics: fire immediately (esp. outbound).
+                        aaPushAnalyticsEvent('aa_ad_click', aaExtractAdPayload(container, $adLink));
 
                         if (!aaAdSettings.nonce_log_click) {
                             window.location.href = redirectUrl;

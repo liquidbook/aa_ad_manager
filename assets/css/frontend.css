@@ -1,0 +1,15 @@
+.aa-ad-container {
+  max-width: 100%;
+}
+
+.aa-ad-container .aa-ad-click {
+  display: block;
+  max-width: 100%;
+}
+
+.aa-ad-container img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+

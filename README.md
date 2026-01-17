@@ -74,6 +74,25 @@ The plugin defines a constant `AA_AD_MANAGER_ACTIVE`. When active, the Agile All
 
 ## Developer Workflow
 
+## Analytics events (GTM/GA4)
+
+Because ads are **AJAX-injected**, GA4 “Enhanced measurement” link-click tracking may not reliably detect ad clicks. The frontend loader emits analytics signals that work with both **Google Tag Manager** and **GA4-only** setups:
+
+- **GTM**: pushes events to `window.dataLayer`
+- **GA4-only**: if `window.gtag` exists, also calls `gtag('event', ...)` (with `transport_type: 'beacon'`)
+
+Emitted events:
+- **`aa_ad_impression`**: fired after the ad HTML is injected into `.aa-ad-container`
+- **`aa_ad_click`**: fired on ad click (before redirect)
+
+Event payload fields:
+- `ad_id`, `placement_key`, `page_id`
+- `destination_url`, `is_outbound`
+- `creative_url` (image URL when available)
+- `ad_size`, `page_type`, `page_context`
+
+On a GTM-enabled site, create **Custom Event** triggers for `aa_ad_impression` and `aa_ad_click` and route them to GA4 events (e.g. `ad_impression`, `ad_click`) while mapping the payload fields as parameters.
+
 ### Docker test environment (quick start)
 This repo includes a `docker-compose.yml` that spins up WordPress + MariaDB + phpMyAdmin and bind-mounts this plugin into the container.
 

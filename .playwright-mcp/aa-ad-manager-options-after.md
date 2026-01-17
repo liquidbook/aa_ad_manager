@@ -1,0 +1,286 @@
+### Page state
+- Page URL: http://localhost:8090/wp-admin/edit.php?post_type=aa_ads&page=aa-ad-manager-options
+- Page Title: Ad Manager Options ‹ AA Ad Manager — WordPress
+- Page Snapshot:
+```yaml
+- generic [ref=e2]:
+  - navigation "Main menu":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#wpbody-content"
+    - link "Skip to toolbar" [ref=e4] [cursor=pointer]:
+      - /url: "#wp-toolbar"
+    - list [ref=e7]:
+      - listitem [ref=e8]:
+        - link "Dashboard" [ref=e9] [cursor=pointer]:
+          - /url: index.php
+          - generic [ref=e10]: 
+          - generic [ref=e11]: Dashboard
+        - list [ref=e12]:
+          - listitem [ref=e13]:
+            - link "Home" [ref=e14] [cursor=pointer]:
+              - /url: index.php
+          - listitem [ref=e15]:
+            - link "Updates" [ref=e16] [cursor=pointer]:
+              - /url: update-core.php
+      - listitem [ref=e17]
+      - listitem [ref=e19]:
+        - link "Posts" [ref=e20] [cursor=pointer]:
+          - /url: edit.php
+          - generic [ref=e21]: 
+          - generic [ref=e22]: Posts
+        - list [ref=e23]:
+          - listitem [ref=e24]:
+            - link "All Posts" [ref=e25] [cursor=pointer]:
+              - /url: edit.php
+          - listitem [ref=e26]:
+            - link "Add Post" [ref=e27] [cursor=pointer]:
+              - /url: post-new.php
+          - listitem [ref=e28]:
+            - link "Categories" [ref=e29] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=category
+          - listitem [ref=e30]:
+            - link "Tags" [ref=e31] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=post_tag
+      - listitem [ref=e32]:
+        - link "Media" [ref=e33] [cursor=pointer]:
+          - /url: upload.php
+          - generic [ref=e34]: 
+          - generic [ref=e35]: Media
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - link "Library" [ref=e38] [cursor=pointer]:
+              - /url: upload.php
+          - listitem [ref=e39]:
+            - link "Add Media File" [ref=e40] [cursor=pointer]:
+              - /url: media-new.php
+      - listitem [ref=e41]:
+        - link "Pages" [ref=e42] [cursor=pointer]:
+          - /url: edit.php?post_type=page
+          - generic [ref=e43]: 
+          - generic [ref=e44]: Pages
+        - list [ref=e45]:
+          - listitem [ref=e46]:
+            - link "All Pages" [ref=e47] [cursor=pointer]:
+              - /url: edit.php?post_type=page
+          - listitem [ref=e48]:
+            - link "Add Page" [ref=e49] [cursor=pointer]:
+              - /url: post-new.php?post_type=page
+      - listitem [ref=e50]:
+        - link "Comments" [ref=e51] [cursor=pointer]:
+          - /url: edit-comments.php
+          - generic [ref=e52]: 
+          - generic [ref=e53]: Comments
+      - listitem [ref=e54]
+      - listitem [ref=e56]:
+        - link "Appearance" [ref=e57] [cursor=pointer]:
+          - /url: themes.php
+          - generic [ref=e58]: 
+          - generic [ref=e59]: Appearance
+        - list [ref=e60]:
+          - listitem [ref=e61]:
+            - link "Themes" [ref=e62] [cursor=pointer]:
+              - /url: themes.php
+          - listitem [ref=e63]:
+            - link "Editor" [ref=e64] [cursor=pointer]:
+              - /url: site-editor.php
+      - listitem [ref=e65]:
+        - link "Plugins" [ref=e66] [cursor=pointer]:
+          - /url: plugins.php
+          - generic [ref=e67]: 
+          - generic [ref=e68]: Plugins
+        - list [ref=e69]:
+          - listitem [ref=e70]:
+            - link "Installed Plugins" [ref=e71] [cursor=pointer]:
+              - /url: plugins.php
+          - listitem [ref=e72]:
+            - link "Add Plugin" [ref=e73] [cursor=pointer]:
+              - /url: plugin-install.php
+      - listitem [ref=e74]:
+        - link "Users" [ref=e75] [cursor=pointer]:
+          - /url: users.php
+          - generic [ref=e76]: 
+          - generic [ref=e77]: Users
+        - list [ref=e78]:
+          - listitem [ref=e79]:
+            - link "All Users" [ref=e80] [cursor=pointer]:
+              - /url: users.php
+          - listitem [ref=e81]:
+            - link "Add User" [ref=e82] [cursor=pointer]:
+              - /url: user-new.php
+          - listitem [ref=e83]:
+            - link "Profile" [ref=e84] [cursor=pointer]:
+              - /url: profile.php
+      - listitem [ref=e85]:
+        - link "Ad Manager" [ref=e86] [cursor=pointer]:
+          - /url: edit.php?post_type=aa_ads
+          - generic [ref=e87]: 
+          - generic [ref=e88]: Ad Manager
+        - list [ref=e89]:
+          - listitem [ref=e90]:
+            - link "All Ads" [ref=e91] [cursor=pointer]:
+              - /url: edit.php?post_type=aa_ads
+          - listitem [ref=e92]:
+            - link "Add New Ad" [ref=e93] [cursor=pointer]:
+              - /url: post-new.php?post_type=aa_ads
+          - listitem [ref=e94]:
+            - link "Campaigns" [ref=e95] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=aa_campaigns&post_type=aa_ads
+          - listitem [ref=e96]:
+            - link "Clients" [ref=e97] [cursor=pointer]:
+              - /url: edit-tags.php?taxonomy=aa_clients&post_type=aa_ads
+          - listitem [ref=e98]:
+            - link "All Placements" [ref=e99] [cursor=pointer]:
+              - /url: edit.php?post_type=aa_placement
+          - listitem [ref=e100]:
+            - link "Ad Manager Options" [ref=e101] [cursor=pointer]:
+              - /url: edit.php?post_type=aa_ads&page=aa-ad-manager-options
+          - listitem [ref=e102]:
+            - link "Ad Manager Reports" [ref=e103] [cursor=pointer]:
+              - /url: edit.php?post_type=aa_ads&page=aa-ad-reports
+      - listitem [ref=e104]:
+        - link "Tools" [ref=e105] [cursor=pointer]:
+          - /url: tools.php
+          - generic [ref=e106]: 
+          - generic [ref=e107]: Tools
+        - list [ref=e108]:
+          - listitem [ref=e109]:
+            - link "Available Tools" [ref=e110] [cursor=pointer]:
+              - /url: tools.php
+          - listitem [ref=e111]:
+            - link "Import" [ref=e112] [cursor=pointer]:
+              - /url: import.php
+          - listitem [ref=e113]:
+            - link "Export" [ref=e114] [cursor=pointer]:
+              - /url: export.php
+          - listitem [ref=e115]:
+            - link "Site Health 2" [ref=e116] [cursor=pointer]:
+              - /url: site-health.php
+              - text: Site Health
+              - generic [ref=e117]: "2"
+          - listitem [ref=e118]:
+            - link "Export Personal Data" [ref=e119] [cursor=pointer]:
+              - /url: export-personal-data.php
+          - listitem [ref=e120]:
+            - link "Erase Personal Data" [ref=e121] [cursor=pointer]:
+              - /url: erase-personal-data.php
+          - listitem [ref=e122]:
+            - link "Theme File Editor" [ref=e123] [cursor=pointer]:
+              - /url: theme-editor.php
+          - listitem [ref=e124]:
+            - link "Plugin File Editor" [ref=e125] [cursor=pointer]:
+              - /url: plugin-editor.php
+      - listitem [ref=e126]:
+        - link "Settings" [ref=e127] [cursor=pointer]:
+          - /url: options-general.php
+          - generic [ref=e128]: 
+          - generic [ref=e129]: Settings
+        - list [ref=e130]:
+          - listitem [ref=e131]:
+            - link "General" [ref=e132] [cursor=pointer]:
+              - /url: options-general.php
+          - listitem [ref=e133]:
+            - link "Writing" [ref=e134] [cursor=pointer]:
+              - /url: options-writing.php
+          - listitem [ref=e135]:
+            - link "Reading" [ref=e136] [cursor=pointer]:
+              - /url: options-reading.php
+          - listitem [ref=e137]:
+            - link "Discussion" [ref=e138] [cursor=pointer]:
+              - /url: options-discussion.php
+          - listitem [ref=e139]:
+            - link "Media" [ref=e140] [cursor=pointer]:
+              - /url: options-media.php
+          - listitem [ref=e141]:
+            - link "Permalinks" [ref=e142] [cursor=pointer]:
+              - /url: options-permalink.php
+          - listitem [ref=e143]:
+            - link "Privacy" [ref=e144] [cursor=pointer]:
+              - /url: options-privacy.php
+      - listitem [ref=e145]:
+        - link "ACF" [ref=e146] [cursor=pointer]:
+          - /url: edit.php?post_type=acf-field-group
+          - generic [ref=e147]: 
+          - generic [ref=e148]: ACF
+        - list [ref=e149]:
+          - listitem [ref=e150]:
+            - link "Field Groups" [ref=e151] [cursor=pointer]:
+              - /url: edit.php?post_type=acf-field-group
+          - listitem [ref=e152]:
+            - link "Post Types" [ref=e153] [cursor=pointer]:
+              - /url: edit.php?post_type=acf-post-type
+          - listitem [ref=e154]:
+            - link "Taxonomies" [ref=e155] [cursor=pointer]:
+              - /url: edit.php?post_type=acf-taxonomy
+          - listitem [ref=e156]:
+            - link "Options Pages" [ref=e157] [cursor=pointer]:
+              - /url: edit.php?post_type=acf-field-group&page=acf_options_preview
+          - listitem [ref=e158]:
+            - link "Tools" [ref=e159] [cursor=pointer]:
+              - /url: edit.php?post_type=acf-field-group&page=acf-tools
+      - listitem [ref=e160]:
+        - button "Collapse Main menu" [expanded] [ref=e161] [cursor=pointer]:
+          - generic [ref=e163]: Collapse Menu
+  - generic [ref=e164]:
+    - generic [ref=e165]:
+      - navigation "Toolbar":
+        - menu:
+          - group [ref=e166]:
+            - menuitem "About WordPress" [ref=e167] [cursor=pointer]:
+              - generic [ref=e169]: About WordPress
+          - group [ref=e170]:
+            - menuitem "AA Ad Manager" [ref=e171] [cursor=pointer]
+          - group [ref=e172]:
+            - menuitem "0 Comments in moderation" [ref=e173] [cursor=pointer]:
+              - generic [ref=e175]: "0"
+              - generic [ref=e176]: 0 Comments in moderation
+          - group [ref=e177]:
+            - menuitem "New" [ref=e178] [cursor=pointer]:
+              - generic [ref=e180]: New
+        - menu [ref=e181]:
+          - group [ref=e182]:
+            - menuitem "Howdy, Cursor AI" [ref=e183] [cursor=pointer]
+    - main [ref=e184]:
+      - generic [ref=e186]:
+        - generic [ref=e188]:
+          - img "Ad Manager Logo" [ref=e189]
+          - generic [ref=e190]:
+            - heading "Ad Manager Settings" [level=1] [ref=e191]
+            - paragraph [ref=e192]: Configure reporting behavior for pages where ads are displayed.
+        - generic [ref=e193]:
+          - generic [ref=e194]:
+            - heading "General Settings" [level=2] [ref=e196]
+            - generic [ref=e197]:
+              - generic [ref=e198]: Not Reportable Post Types
+              - generic [ref=e199]:
+                - group "Not Reportable Post Types" [ref=e200]:
+                  - generic [ref=e201]:
+                    - checkbox "Media attachment" [ref=e202] [cursor=pointer]
+                    - text: Media
+                    - code [ref=e203]: attachment
+                  - generic [ref=e204]:
+                    - checkbox "Pages page" [ref=e205] [cursor=pointer]
+                    - text: Pages
+                    - code [ref=e206]: page
+                  - generic [ref=e207]:
+                    - checkbox "Posts post" [ref=e208] [cursor=pointer]
+                    - text: Posts
+                    - code [ref=e209]: post
+                - paragraph [ref=e210]:
+                  - text: Leave everything unchecked to treat
+                  - strong [ref=e211]: all
+                  - text: public post types as reportable.
+              - paragraph [ref=e212]:
+                - text: Exclude post types from
+                - strong [ref=e213]: archive reporting
+                - text: . This does not affect ad delivery or placements.
+          - paragraph [ref=e214]:
+            - button "Save Changes" [ref=e215] [cursor=pointer]
+  - contentinfo [ref=e216]:
+    - paragraph [ref=e217]:
+      - generic [ref=e218]:
+        - text: Thank you for creating with
+        - link "WordPress" [ref=e219] [cursor=pointer]:
+          - /url: https://wordpress.org/
+        - text: .
+    - paragraph [ref=e220]: Version 6.9
+```

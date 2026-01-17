@@ -15,6 +15,11 @@
   height: 40px;
 }
 
+/* Settings (Ad Manager Options page) */
+.aa-settings-page {
+  max-width: 1100px;
+}
+
 /* aa_ads list table enhancements (thumbnail + statistics). */
 .aa-ad-thumb-link {
   display: inline-block;
