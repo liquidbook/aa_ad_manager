@@ -141,11 +141,20 @@ button.aa-ad-thumb-link {
 
 /* Toggle main metabox content via body class. */
 .aa-ad-tab--fields #aa_ad_manager_performance {
-  display: none;
+  display: block;
 }
 
 .aa-ad-tab--performance .acf-postbox {
-  display: none !important;
+  display: block !important;
+}
+
+/* Hide only the INSIDE contents so WP doesn't persist "hidden metabox" state. */
+.aa-ad-tab--fields #aa_ad_manager_performance .inside {
+  display: none;
+}
+
+.aa-ad-tab--performance .acf-postbox .inside {
+  display: none;
 }
 
 /* Performance dashboard (aa_ads edit screen). */
