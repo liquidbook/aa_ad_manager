@@ -139,6 +139,16 @@ button.aa-ad-thumb-link {
   margin-bottom: 10px;
 }
 
+.aa-placements-list,
+.aa-placements-delivered {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.aa-placements-delivered li {
+  margin-bottom: 10px;
+}
+
 /* Toggle main metabox content via body class. */
 .aa-ad-tab--fields #aa_ad_manager_performance {
   display: block;
@@ -168,6 +178,12 @@ button.aa-ad-thumb-link {
   justify-content: space-between;
   gap: 12px;
   margin: 0 0 10px;
+}
+
+.aa-perf__filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .aa-perf__subtitle {
@@ -284,6 +300,15 @@ button.aa-ad-thumb-link {
   border: 1px solid #e5e5e5;
   border-radius: 10px;
   padding: 10px;
+}
+
+.aa-perf__placement-breakdown .widefat {
+  margin-top: 6px;
+}
+
+.aa-perf__breakdown-table .column-number {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .aa-perf__status {

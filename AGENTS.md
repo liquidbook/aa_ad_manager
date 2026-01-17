@@ -29,6 +29,34 @@
 - **Do not rename ACF field keys lightly**. Field names like `ad_image` are used by PHP and JS logic.
 
 ---
+## Placements v1 (new subsystem)
+
+This plugin now supports a **Placement (slot/shelf) system** to control where ads render.
+
+- - **Placement CPT**: `aa_placement` (registered in `includes/placements.php`)
+
+- **Placement key**: `placement_key` meta used by shortcode and tracking
+- **Placement shortcode**: `[aa_slot key="sidebar_main"]` (in `includes/shortcodes.php`)
+- **Ad selection**: when rendering a placement, eligible ads are selected from that placement’s assigned ads using existing weighting/eligibility rules.
+
+### Placements v1 defaults (do not “improve” these without explicit instruction)
+- **placement_key generation**: auto-generate from title on create; allow editing later with a warning that changing it can break existing shortcodes.
+- **empty placement render**: return empty string (render nothing). If debug mode is enabled, optionally return an HTML comment explaining why nothing rendered.
+- **placement_size**: optional metadata in v1. It may influence the requested size (e.g., `[aa_slot]` requests wide/square when set), but avoid strict global enforcement rules beyond that.
+
+
+### Tracking requirement
+When an ad is served via a placement, impression/click logs must include `placement_key` (or a resolvable placement identifier). All placement-aware reporting assumes this exists.
+
+### Reporting/query guidance
+- Prefer aggregated queries (GROUP BY placement_key) over per-placement loops.
+- Keep wp-admin list tables fast: avoid per-row DB calls; batch-load placement mappings and/or use request-level caching.
+
+### Backward compatibility / transition
+- Existing ad shortcodes must continue to work.
+- Campaign/client taxonomies remain supported during transition; do not delete/auto-mutate legacy taxonomy terms without explicit instruction.
+- Placements must work even if campaign taxonomy contains “location-like” terms.
+---
 
 ### Docker dev/test workflow
 - **Compose file**: `docker-compose.yml` (WordPress + MariaDB + phpMyAdmin).

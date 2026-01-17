@@ -1,0 +1,97 @@
+{
+  "key": "group_aa_placements_v1",
+  "title": "AA Placement Fields",
+  "fields": [
+    {
+      "key": "field_aa_placement_key",
+      "label": "Placement Key",
+      "name": "placement_key",
+      "type": "text",
+      "instructions": "Stable identifier used by the shortcode and tracking. Changing this later may break existing pages using the shortcode.",
+      "required": 1,
+      "wrapper": { "width": "", "class": "", "id": "" },
+      "default_value": "",
+      "placeholder": "sidebar_blog_articles",
+      "maxlength": ""
+    },
+    {
+      "key": "field_aa_placement_active",
+      "label": "Active",
+      "name": "placement_active",
+      "type": "true_false",
+      "instructions": "Inactive placements will render nothing on the front-end.",
+      "required": 0,
+      "wrapper": { "width": "25", "class": "", "id": "" },
+      "default_value": 1,
+      "ui": 1,
+      "ui_on_text": "Active",
+      "ui_off_text": "Inactive"
+    },
+    {
+      "key": "field_aa_placement_size",
+      "label": "Placement Size",
+      "name": "placement_size",
+      "type": "select",
+      "instructions": "Optional. If set to Wide or Square, the placement will request ads of that size. Otherwise, it will request any size.",
+      "required": 0,
+      "wrapper": { "width": "25", "class": "", "id": "" },
+      "choices": {
+        "wide": "Wide",
+        "square": "Square",
+        "custom": "Custom / Mixed"
+      },
+      "default_value": "custom",
+      "return_format": "value",
+      "multiple": 0,
+      "allow_null": 0,
+      "ui": 0,
+      "ajax": 0,
+      "placeholder": ""
+    },
+    {
+      "key": "field_aa_placement_description",
+      "label": "Description",
+      "name": "placement_description",
+      "type": "textarea",
+      "instructions": "Optional. Internal notes about what this placement is for.",
+      "required": 0,
+      "wrapper": { "width": "50", "class": "", "id": "" },
+      "default_value": "",
+      "placeholder": "",
+      "maxlength": "",
+      "rows": 4,
+      "new_lines": "br"
+    },
+    {
+      "key": "field_aa_assigned_ads",
+      "label": "Assigned Ads",
+      "name": "assigned_ads",
+      "type": "relationship",
+      "instructions": "Select the ads that are eligible to appear in this placement.",
+      "required": 0,
+      "wrapper": { "width": "", "class": "", "id": "" },
+      "post_type": ["aa_ads"],
+      "taxonomy": "",
+      "filters": ["search"],
+      "elements": "",
+      "min": 0,
+      "max": 0,
+      "return_format": "id"
+    }
+  ],
+  "location": [
+    [
+      { "param": "post_type", "operator": "==", "value": "aa_placement" }
+    ]
+  ],
+  "menu_order": 0,
+  "position": "normal",
+  "style": "default",
+  "label_placement": "top",
+  "instruction_placement": "field",
+  "hide_on_screen": "",
+  "active": true,
+  "description": "",
+  "show_in_rest": 0
+}
+

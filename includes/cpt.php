@@ -43,11 +43,136 @@ add_action('init', 'aa_ad_manager_register_ads_cpt');
 
 function aa_ad_manager_ads_custom_columns($columns) {
     $columns['shortcode'] = 'Shortcode';
+    $columns['placements'] = 'Placements';
     $columns['aa_stats'] = 'Statistics';
     $columns['ad_image'] = 'Ad Image';
     return $columns;
 }
 add_filter('manage_aa_ads_posts_columns', 'aa_ad_manager_ads_custom_columns');
+
+/**
+ * Prefetch placements assigned to ads shown on the aa_ads list table.
+ *
+ * Avoids per-row queries by scanning the placements relationship meta once per
+ * list page and building an in-memory mapping of ad_id => placements[].
+ *
+ * @return array{by_ad:array<int,array<int,array{id:int,title:string,edit_url:string}>>}
+ */
+function aa_ad_manager_ads_list_table_placements_cache() {
+    static $cache = null;
+    if (is_array($cache)) {
+        return $cache;
+    }
+
+    $cache = array('by_ad' => array());
+
+    if (!is_admin()) {
+        return $cache;
+    }
+
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen || $screen->post_type !== 'aa_ads' || $screen->base !== 'edit') {
+        return $cache;
+    }
+
+    global $wp_query, $wpdb;
+    if (empty($wp_query) || empty($wp_query->posts) || !is_array($wp_query->posts)) {
+        return $cache;
+    }
+
+    $ad_ids = array();
+    foreach ($wp_query->posts as $post) {
+        if (is_object($post) && isset($post->ID)) {
+            $ad_ids[] = (int) $post->ID;
+        }
+    }
+    $ad_ids = array_values(array_filter(array_unique($ad_ids)));
+    if (empty($ad_ids)) {
+        return $cache;
+    }
+
+    // Find placements that reference any of these ad IDs.
+    $like_clauses = array();
+    $params = array();
+    foreach ($ad_ids as $id) {
+        $like_clauses[] = "pm.meta_value LIKE %s";
+        $params[] = '%"' . (int) $id . '"%';
+    }
+
+    $where_like = implode(' OR ', $like_clauses);
+
+    $sql = "
+        SELECT p.ID AS placement_id, pm.meta_value
+        FROM {$wpdb->posts} p
+        INNER JOIN {$wpdb->postmeta} pm
+            ON pm.post_id = p.ID
+           AND pm.meta_key = 'assigned_ads'
+        WHERE p.post_type = 'aa_placement'
+          AND p.post_status IN ('publish','draft','pending','future','private')
+          AND ($where_like)
+    ";
+
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $params), ARRAY_A);
+    if (!is_array($rows) || empty($rows)) {
+        return $cache;
+    }
+
+    $ad_set = array_fill_keys($ad_ids, true);
+    $placements_seen = array();
+
+    foreach ($rows as $row) {
+        $pid = isset($row['placement_id']) ? (int) $row['placement_id'] : 0;
+        if ($pid <= 0) {
+            continue;
+        }
+
+        $raw = isset($row['meta_value']) ? $row['meta_value'] : '';
+        $assigned = maybe_unserialize($raw);
+        if (!is_array($assigned)) {
+            continue;
+        }
+
+        foreach ($assigned as $aid) {
+            $aid = (int) $aid;
+            if ($aid <= 0 || !isset($ad_set[$aid])) {
+                continue;
+            }
+            if (!isset($cache['by_ad'][$aid])) {
+                $cache['by_ad'][$aid] = array();
+            }
+            // We'll attach title/edit_url later; store placement IDs for now.
+            $cache['by_ad'][$aid][$pid] = array('id' => $pid, 'title' => '', 'edit_url' => '');
+            $placements_seen[$pid] = true;
+        }
+    }
+
+    if (empty($placements_seen)) {
+        return $cache;
+    }
+
+    foreach (array_keys($placements_seen) as $pid) {
+        $pid = (int) $pid;
+        if ($pid <= 0) {
+            continue;
+        }
+        $title = (string) get_the_title($pid);
+        $edit_url = (string) get_edit_post_link($pid, 'raw');
+
+        foreach ($cache['by_ad'] as $aid => $placements) {
+            if (isset($cache['by_ad'][$aid][$pid])) {
+                $cache['by_ad'][$aid][$pid]['title'] = $title;
+                $cache['by_ad'][$aid][$pid]['edit_url'] = $edit_url;
+            }
+        }
+    }
+
+    // Normalize to numeric arrays per ad.
+    foreach ($cache['by_ad'] as $aid => $placements) {
+        $cache['by_ad'][$aid] = array_values($placements);
+    }
+
+    return $cache;
+}
 
 /**
  * Prefetch impression/click counts for ads shown on the aa_ads list table.
@@ -149,6 +274,38 @@ function aa_ad_manager_ads_custom_column_content($column, $post_id) {
 
         echo '<span class="shortcode-text">' . esc_html($shortcode) . '</span>';
         echo ' <button type="button" class="button button-small copy-shortcode">Copy</button>';
+        return;
+    }
+
+    if ($column === 'placements') {
+        $cache = aa_ad_manager_ads_list_table_placements_cache();
+        $placements = isset($cache['by_ad'][$post_id]) ? (array) $cache['by_ad'][$post_id] : array();
+        if (empty($placements)) {
+            echo '&mdash;';
+            return;
+        }
+
+        // Render up to 2 placements, then +N.
+        $max_show = 2;
+        $shown = array_slice($placements, 0, $max_show);
+        $extra = count($placements) - count($shown);
+
+        $parts = array();
+        foreach ($shown as $pl) {
+            $title = isset($pl['title']) ? (string) $pl['title'] : '';
+            $url = isset($pl['edit_url']) ? (string) $pl['edit_url'] : '';
+            $label = $title ?: 'Placement';
+            if ($url) {
+                $parts[] = '<a href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+            } else {
+                $parts[] = esc_html($label);
+            }
+        }
+
+        echo implode(', ', $parts);
+        if ($extra > 0) {
+            echo ' <span class="description">+' . (int) $extra . '</span>';
+        }
         return;
     }
 
@@ -335,14 +492,16 @@ function aa_ad_manager_ads_posts_clauses_tax_sort($clauses, $query) {
 add_filter('posts_clauses', 'aa_ad_manager_ads_posts_clauses_tax_sort', 10, 2);
 
 function aa_ad_manager_enqueue_admin_scripts($hook) {
-    // Only on aa_ads list/edit screens.
+    // Only on aa_ads / aa_placement list/edit screens.
     $screen = function_exists('get_current_screen') ? get_current_screen() : null;
     if (!$screen) {
         return;
     }
 
-    // Only on aa_ads list table (edit.php) and edit screen (post.php).
-    if ($screen->post_type !== 'aa_ads' || !in_array($screen->base, array('edit', 'post'), true)) {
+    $supported_post_types = array('aa_ads', 'aa_placement');
+
+    // Only on supported list table (edit.php) and edit screen (post.php).
+    if (!in_array($screen->post_type, $supported_post_types, true) || !in_array($screen->base, array('edit', 'post'), true)) {
         return;
     }
 
@@ -357,7 +516,7 @@ function aa_ad_manager_enqueue_admin_scripts($hook) {
         $admin_css_ver
     );
 
-    // List table scripts only.
+    // List table scripts.
     if ($screen->base === 'edit') {
         $list_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/ads/aa-admin-scripts.js';
         $list_js_ver = file_exists($list_js_path) ? (string) filemtime($list_js_path) : AA_AD_MANAGER_VERSION;
@@ -369,11 +528,44 @@ function aa_ad_manager_enqueue_admin_scripts($hook) {
             $list_js_ver,
             true
         );
+
+        wp_localize_script(
+            'aa-admin-scripts',
+            'aaAdminSettings',
+            array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('aa_admin_nonce'),
+            )
+        );
         return;
     }
 
-    // Edit screen: only load performance assets when Performance tab is active.
-    if ($screen->base === 'post' && function_exists('aa_ad_manager_get_current_ad_edit_tab')) {
+    // Placement edit screen: load lightweight helpers (copy button, key auto-fill).
+    if ($screen->base === 'post' && $screen->post_type === 'aa_placement') {
+        $edit_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/ads/aa-admin-scripts.js';
+        $edit_js_ver = file_exists($edit_js_path) ? (string) filemtime($edit_js_path) : AA_AD_MANAGER_VERSION;
+
+        wp_enqueue_script(
+            'aa-admin-scripts',
+            AA_AD_MANAGER_PLUGIN_URL . 'assets/js/ads/aa-admin-scripts.js',
+            array('jquery'),
+            $edit_js_ver,
+            true
+        );
+
+        wp_localize_script(
+            'aa-admin-scripts',
+            'aaAdminSettings',
+            array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('aa_admin_nonce'),
+            )
+        );
+        return;
+    }
+
+    // Edit screen (aa_ads only): only load performance assets when Performance tab is active.
+    if ($screen->base === 'post' && $screen->post_type === 'aa_ads' && function_exists('aa_ad_manager_get_current_ad_edit_tab')) {
         if (aa_ad_manager_get_current_ad_edit_tab() !== 'performance') {
             return;
         }
@@ -384,6 +576,11 @@ function aa_ad_manager_enqueue_admin_scripts($hook) {
         $post_id = (int) $_GET['post'];
     } elseif (isset($GLOBALS['post']) && $GLOBALS['post'] instanceof WP_Post) {
         $post_id = (int) $GLOBALS['post']->ID;
+    }
+
+    // Performance assets are only relevant to ads.
+    if ($screen->post_type !== 'aa_ads') {
+        return;
     }
 
     // Chart.js vendor bundle (stored in-plugin).
@@ -411,7 +608,7 @@ function aa_ad_manager_enqueue_admin_scripts($hook) {
 
     $initial_data = null;
     if ($post_id > 0 && function_exists('aa_ad_manager_get_ad_performance_data') && function_exists('aa_ad_manager_perf_parse_range')) {
-        $initial_data = aa_ad_manager_get_ad_performance_data($post_id, aa_ad_manager_perf_parse_range('30'));
+        $initial_data = aa_ad_manager_get_ad_performance_data($post_id, aa_ad_manager_perf_parse_range('30'), '');
     }
 
     wp_localize_script(

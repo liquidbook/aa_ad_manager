@@ -9,10 +9,11 @@ The **Agile Alliance Ad Manager** provides a complete subsystem for managing ban
 ## Features
 
 - **Ad Management (CPT):** Manage ads as a custom post type (`aa_ads`) with specialized fields for creatives, links, and display rules.
+- **Placements (CPT):** Manage placements/slots as a custom post type (`aa_placement`) and assign eligible ads directly to each placement.
 - **Campaign Tracking:** Organize ads into campaigns (`aa_campaigns`) and clients (`aa_clients`).
 - **Weighted Selection:** Control display frequency using a weighting system and enforce impression limits.
 - **AJAX Delivery:** Ads are injected into pages via AJAX to bypass cache and ensure tracking triggers on every view.
-- **Comprehensive Tracking:** Custom database tables track every impression and click with precision.
+- **Comprehensive Tracking:** Custom database tables track every impression and click with precision, including `placement_key` when served via a placement.
 - **Admin Reports:** Built-in reporting dashboard to visualize ad performance (impressions and clicks) over time.
 - **Shortcode Integration:** Simple shortcodes for easy placement in Elementor or standard WordPress content.
 
@@ -23,13 +24,15 @@ The plugin manages two custom database tables:
 - `wp_aa_ad_impressions`: Logs every time an ad is rendered.
 - `wp_aa_ad_clicks`: Logs every time a user clicks on an ad creative.
 
+Both tables include a `placement_key` column (empty for legacy campaign-based delivery, populated for `[aa_slot]` placements).
+
 ### 2. AJAX Contract
 To maintain compatibility with cached environments, the plugin exposes two primary AJAX actions:
 - `aa_get_ad`: Fetches an eligible ad based on size and campaign, logs the impression, and returns the HTML creative.
 - `aa_log_click`: Logs the click event before the user is redirected to the destination URL.
 
 ### 3. ACF Integration
-The plugin uses a **JSON load path** strategy for Advanced Custom Fields. The field definitions for the `aa_ads` post type are shipped within the plugin's `acf/` directory and loaded automatically via the `acf/settings/load_json` filter.
+The plugin uses a **JSON load path** strategy for Advanced Custom Fields. Field definitions are shipped with the plugin and loaded via the `acf/settings/load_json` filter (see `includes/acf-json.php`).
 
 This repo uses:
 - `acf-json/`: ACF Local JSON (preferred, loaded via `acf/settings/load_json`)
@@ -39,6 +42,15 @@ This repo uses:
 
 ### Shortcodes
 Place ads anywhere using the following shortcodes:
+
+**Placements (recommended):**
+```shortcode
+[aa_slot key="sidebar_blog_articles"]
+```
+
+Notes:
+- `key` must match a Placement’s **Placement Key**.
+- The Placement’s **Assigned Ads** define the eligible pool; ad rotation still respects each ad’s `display_frequency` weight and eligibility rules.
 
 **Wide Ads:**
 ```shortcode
@@ -57,7 +69,7 @@ The plugin defines a constant `AA_AD_MANAGER_ACTIVE`. When active, the Agile All
 
 1. Upload the `agile-alliance-ad-manager` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. On activation, the plugin will automatically create the necessary database tables if they do not exist.
+3. On activation (and on subsequent plugin loads if needed), the plugin will automatically create/upgrade the necessary database tables if they do not exist.
 4. Ensure **Advanced Custom Fields (Pro)** is installed and active, as it is a required dependency for the ad management interface.
 
 ## Developer Workflow
@@ -77,8 +89,8 @@ docker compose up -d
 
 ### Asset Compilation
 JavaScript and CSS assets are managed within the plugin structure:
-- `assets/js/aa-ad-loader.js`: The frontend engine that handles AJAX injection and click logging.
-- `assets/js/aa-admin-scripts.js`: Admin-side helpers (e.g., the "Copy Shortcode" button).
+- `assets/js/ads/aa-ad-loader.js`: The frontend engine that handles AJAX injection and click logging.
+- `assets/js/ads/aa-admin-scripts.js`: Admin-side helpers (e.g., the "Copy Shortcode" button).
 
 ## License
 

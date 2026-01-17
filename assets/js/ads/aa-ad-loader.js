@@ -5,6 +5,7 @@ jQuery(document).ready(function($) {
         // Retrieve parameters from data attributes
         var adSize = container.data('ad-size') || 'wide';
         var campaign = container.data('campaign') || '';
+        var placementKey = container.data('placement-key') || '';
 
         // Prefer localized URL; fall back to container data-ajax-url for compatibility/diagnostics.
         var ajaxUrl = (window.aaAdSettings && aaAdSettings.ajax_url) ? aaAdSettings.ajax_url : container.data('ajax-url');
@@ -31,6 +32,7 @@ jQuery(document).ready(function($) {
                 action: 'aa_get_ad',
                 ad_size: adSize,
                 campaign: campaign,
+                placement_key: placementKey,
                 page_id: pageId,
                 page_type: pageType,
                 page_context: pageContext,
@@ -45,6 +47,7 @@ jQuery(document).ready(function($) {
 
                         var adId = $(this).data('ad-id');
                         var clickPageId = $(this).data('page-id') || pageId;
+                        var clickPlacementKey = $(this).data('placement-key') || placementKey || '';
                         var refererUrl = document.referrer || '';
                         var redirectUrl = $(this).attr('href');
 
@@ -60,6 +63,7 @@ jQuery(document).ready(function($) {
                                 action: 'aa_log_click',
                                 ad_id: adId,
                                 page_id: clickPageId,
+                                placement_key: clickPlacementKey,
                                 referer_url: refererUrl,
                                 page_type: pageType,
                                 page_context: pageContext,

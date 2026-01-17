@@ -11,6 +11,7 @@ jQuery(function ($) {
 
   var adId = parseInt($root.data('ad-id'), 10) || parseInt(settings.adId, 10) || 0;
   var $range = $('#aa-perf-range');
+  var $placement = $('#aa-perf-placement');
   var $metric = $('#aa-perf-top-metric');
 
   var $status = $('#aa-perf-status');
@@ -20,6 +21,7 @@ jQuery(function ($) {
   var $topPages = $('#aa-perf-top-pages');
   var $topPage = $('#aa-perf-top-page');
   var $topCtrPage = $('#aa-perf-top-ctr-page');
+  var $breakdown = $('#aa-perf-placement-breakdown');
 
   function setStatus(msg) {
     $status.text(msg || '');
@@ -197,9 +199,90 @@ jQuery(function ($) {
     });
   }
 
+  function renderPlacementBreakdown(rows) {
+    if (!$breakdown.length) {
+      return;
+    }
+
+    var list = (rows || []).slice();
+    $breakdown.empty();
+
+    if (!list.length) {
+      $breakdown.append($('<p />').addClass('description').text('No placement activity in selected range.'));
+      return;
+    }
+
+    var $table = $('<table />').addClass('widefat striped aa-perf__breakdown-table');
+    var $thead = $('<thead />').append(
+      $('<tr />').append(
+        $('<th />').text('Placement'),
+        $('<th />').addClass('column-number').text('Impressions'),
+        $('<th />').addClass('column-number').text('Clicks'),
+        $('<th />').addClass('column-number').text('CTR')
+      )
+    );
+    var $tbody = $('<tbody />');
+
+    list.forEach(function (row) {
+      var key = row.placement_key || '';
+      var name = row.placement_title || key || 'Unknown';
+      var imps = Number(row.impressions) || 0;
+      var clicks = Number(row.clicks) || 0;
+      var ctr = (row.ctr === null || typeof row.ctr === 'undefined') ? null : Number(row.ctr);
+
+      var $nameCell = $('<td />');
+      if (key && $placement && $placement.length) {
+        var $a = $('<a />')
+          .attr('href', '#')
+          .text(name)
+          .on('click', function (e) {
+            e.preventDefault();
+            $placement.val(key).trigger('change');
+          });
+        $nameCell.append($a);
+      } else {
+        $nameCell.text(name);
+      }
+      if (key) {
+        $nameCell.append($('<div />').addClass('description').text(key));
+      }
+
+      $tbody.append(
+        $('<tr />').append(
+          $nameCell,
+          $('<td />').addClass('column-number').text(fmtNumber(imps)),
+          $('<td />').addClass('column-number').text(fmtNumber(clicks)),
+          $('<td />').addClass('column-number').text(fmtPct(ctr))
+        )
+      );
+    });
+
+    $table.append($thead, $tbody);
+    $breakdown.append($table);
+  }
+
   function applyPayload(payload) {
     if (!payload) {
       return;
+    }
+
+    // Populate placement dropdown (if provided) and preserve current selection.
+    if ($placement.length && payload.placement_options) {
+      var current = $placement.val() || '';
+      var nextSelected = (payload.placement_key !== null && typeof payload.placement_key !== 'undefined')
+        ? String(payload.placement_key || '')
+        : current;
+
+      // Rebuild options each time to reflect newest known set.
+      $placement.empty();
+      $placement.append($('<option />').attr('value', '').text('All placements'));
+
+      Object.keys(payload.placement_options).sort().forEach(function (key) {
+        var label = payload.placement_options[key] || key;
+        $placement.append($('<option />').attr('value', key).text(label));
+      });
+
+      $placement.val(nextSelected);
     }
 
     var totals = payload.totals || {};
@@ -214,12 +297,16 @@ jQuery(function ($) {
     var items = top.items || [];
     renderTopList(items, $metric.val() || 'clicks');
     buildCharts(payload);
+
+    renderPlacementBreakdown(payload.placement_breakdown || []);
   }
 
   function fetchRange(range) {
     if (!settings.ajaxUrl || !settings.nonce || !adId) {
       return;
     }
+
+    var placementKey = ($placement && $placement.length) ? String($placement.val() || '') : '';
 
     setStatus('Loading…');
     return $.ajax({
@@ -230,7 +317,8 @@ jQuery(function ($) {
         action: 'aa_ad_manager_get_ad_performance',
         nonce: settings.nonce,
         ad_id: adId,
-        range: range
+        range: range,
+        placement_key: placementKey
       }
     }).done(function (resp) {
       if (resp && resp.success && resp.data) {
@@ -254,6 +342,10 @@ jQuery(function ($) {
 
   $range.on('change', function () {
     fetchRange($(this).val());
+  });
+
+  $placement.on('change', function () {
+    fetchRange($range.val() || '30');
   });
 
   $metric.on('change', function () {

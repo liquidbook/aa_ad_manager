@@ -174,6 +174,13 @@ function aa_ad_manager_render_ad_performance_meta_box($post) {
     echo '  <div class="aa-perf__title">';
     echo '    <strong>Impressions &amp; Clicks Over Time</strong> <span class="aa-perf__subtitle">(Last 30 Days)</span>';
     echo '  </div>';
+    echo '  <div class="aa-perf__filters">';
+    echo '    <label class="aa-perf__placement">';
+    echo '      <span class="screen-reader-text">Select placement</span>';
+    echo '      <select id="aa-perf-placement" name="aa_perf_placement" class="aa-perf__mini-select" aria-label="Placement filter">';
+    echo '        <option value="" selected>All placements</option>';
+    echo '      </select>';
+    echo '    </label>';
     echo '  <label class="aa-perf__range">';
     echo '    <span class="screen-reader-text">Select date range</span>';
     echo '    <select id="aa-perf-range" name="aa_perf_range">';
@@ -183,6 +190,7 @@ function aa_ad_manager_render_ad_performance_meta_box($post) {
     echo '      <option value="all">All-time</option>';
     echo '    </select>';
     echo '  </label>';
+    echo '  </div>';
     echo '</div>';
 
     echo '<div class="aa-perf__grid aa-perf__grid--top">';
@@ -222,9 +230,288 @@ function aa_ad_manager_render_ad_performance_meta_box($post) {
     echo '  </div>';
     echo '</div>';
 
+    echo '<div class="aa-perf__grid aa-perf__grid--placements">';
+    echo '  <div class="aa-perf__card">';
+    echo '    <div class="aa-perf__card-header">';
+    echo '      <strong>Placement Breakdown</strong> <span class="aa-perf__subtitle">(Selected range)</span>';
+    echo '    </div>';
+    echo '    <div id="aa-perf-placement-breakdown" class="aa-perf__placement-breakdown" aria-label="Placement breakdown"></div>';
+    echo '  </div>';
+    echo '</div>';
+
     echo '<div class="aa-perf__status" id="aa-perf-status" aria-live="polite"></div>';
 
     echo '</div>';
+}
+
+/**
+ * Register a Placements metabox for aa_ads edit screen (Fields tab only).
+ */
+function aa_ad_manager_add_ad_placements_meta_box() {
+    add_meta_box(
+        'aa_ad_manager_ad_placements',
+        'Placements',
+        'aa_ad_manager_render_ad_placements_meta_box',
+        'aa_ads',
+        'side',
+        'high'
+    );
+}
+add_action('add_meta_boxes_aa_ads', 'aa_ad_manager_add_ad_placements_meta_box');
+
+/**
+ * Get placements that have this ad assigned via ACF relationship field `assigned_ads`.
+ *
+ * @param int $ad_id
+ * @return array<int,array{id:int,title:string,key:string,edit_url:string}>
+ */
+function aa_ad_manager_get_assigned_placements_for_ad($ad_id) {
+    $ad_id = (int) $ad_id;
+    if ($ad_id <= 0) {
+        return array();
+    }
+
+    // ACF relationship values are stored serialized; search for quoted ID to avoid partial matches.
+    $like = '"' . $ad_id . '"';
+
+    $placements = get_posts(array(
+        'post_type'      => 'aa_placement',
+        'post_status'    => array('publish', 'draft', 'pending', 'future', 'private'),
+        'posts_per_page' => -1,
+        'orderby'        => 'title',
+        'order'          => 'ASC',
+        'meta_query'     => array(
+            array(
+                'key'     => 'assigned_ads',
+                'value'   => $like,
+                'compare' => 'LIKE',
+            ),
+        ),
+    ));
+
+    $out = array();
+    if (is_array($placements)) {
+        foreach ($placements as $p) {
+            if (!($p instanceof WP_Post)) {
+                continue;
+            }
+            $key = function_exists('get_field') ? (string) get_field('placement_key', $p->ID) : (string) get_post_meta($p->ID, 'placement_key', true);
+            $key = trim($key);
+            $out[] = array(
+                'id'       => (int) $p->ID,
+                'title'    => (string) get_the_title($p->ID),
+                'key'      => $key,
+                'edit_url' => (string) get_edit_post_link($p->ID, 'raw'),
+            );
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * Get delivered placements for an ad for the last N days (grouped by placement_key).
+ *
+ * @param int $ad_id
+ * @param int $days
+ * @param int $limit
+ * @return array<int,array{placement_key:string,placement_id:int,placement_title:string,edit_url:string,impressions:int,clicks:int,ctr:(float|null)}>
+ */
+function aa_ad_manager_get_delivered_placements_for_ad($ad_id, $days = 30, $limit = 10) {
+    global $wpdb;
+    $tables = aa_ad_manager_tables();
+
+    $ad_id = (int) $ad_id;
+    $days = max(1, (int) $days);
+    $limit = max(1, (int) $limit);
+
+    if ($ad_id <= 0) {
+        return array();
+    }
+
+    $cutoff = date('Y-m-d H:i:s', (int) current_time('timestamp') - ($days * DAY_IN_SECONDS));
+
+    $imp_rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT placement_key, COUNT(*) AS impressions
+             FROM {$tables['impressions']}
+             WHERE ad_id = %d
+               AND impressed_at >= %s
+               AND placement_key <> ''
+             GROUP BY placement_key
+             ORDER BY impressions DESC
+             LIMIT %d",
+            $ad_id,
+            $cutoff,
+            $limit
+        ),
+        ARRAY_A
+    );
+
+    $clk_rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT placement_key, COUNT(*) AS clicks
+             FROM {$tables['clicks']}
+             WHERE ad_id = %d
+               AND clicked_at >= %s
+               AND placement_key <> ''
+             GROUP BY placement_key",
+            $ad_id,
+            $cutoff
+        ),
+        ARRAY_A
+    );
+
+    $clicks_by_key = array();
+    if (is_array($clk_rows)) {
+        foreach ($clk_rows as $row) {
+            $k = isset($row['placement_key']) ? (string) $row['placement_key'] : '';
+            if ($k === '') {
+                continue;
+            }
+            $clicks_by_key[$k] = isset($row['clicks']) ? (int) $row['clicks'] : 0;
+        }
+    }
+
+    $ordered_keys = array();
+    $by_key = array();
+    if (is_array($imp_rows)) {
+        foreach ($imp_rows as $row) {
+            $k = isset($row['placement_key']) ? (string) $row['placement_key'] : '';
+            if ($k === '') {
+                continue;
+            }
+            $ordered_keys[] = $k;
+            $imps = isset($row['impressions']) ? (int) $row['impressions'] : 0;
+            $clks = isset($clicks_by_key[$k]) ? (int) $clicks_by_key[$k] : 0;
+            $ctr = null;
+            if ($imps > 0) {
+                $ctr = ($clks / $imps) * 100;
+            }
+            $by_key[$k] = array(
+                'placement_key'   => $k,
+                'placement_id'    => 0,
+                'placement_title' => '',
+                'edit_url'        => '',
+                'impressions'     => $imps,
+                'clicks'          => $clks,
+                'ctr'             => $ctr,
+            );
+        }
+    }
+
+    // Resolve keys to placement posts (best-effort; batched).
+    $keys = array_values(array_filter(array_unique($ordered_keys)));
+    if (!empty($keys)) {
+        $meta_query = array('relation' => 'OR');
+        foreach ($keys as $k) {
+            $meta_query[] = array(
+                'key'   => 'placement_key',
+                'value' => $k,
+            );
+        }
+
+        $ids = get_posts(array(
+            'post_type'      => 'aa_placement',
+            'post_status'    => array('publish', 'draft', 'pending', 'future', 'private'),
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'meta_query'     => $meta_query,
+        ));
+
+        if (is_array($ids)) {
+            foreach ($ids as $pid) {
+                $pid = (int) $pid;
+                if ($pid <= 0) {
+                    continue;
+                }
+                $k = function_exists('get_field') ? (string) get_field('placement_key', $pid) : (string) get_post_meta($pid, 'placement_key', true);
+                $k = trim($k);
+                if ($k !== '' && isset($by_key[$k])) {
+                    $by_key[$k]['placement_id'] = $pid;
+                    $by_key[$k]['placement_title'] = (string) get_the_title($pid);
+                    $by_key[$k]['edit_url'] = (string) get_edit_post_link($pid, 'raw');
+                }
+            }
+        }
+    }
+
+    $out = array();
+    foreach ($keys as $k) {
+        if (isset($by_key[$k])) {
+            $out[] = $by_key[$k];
+        }
+    }
+    return $out;
+}
+
+/**
+ * Render the Placements metabox.
+ */
+function aa_ad_manager_render_ad_placements_meta_box($post) {
+    if (!($post instanceof WP_Post)) {
+        return;
+    }
+
+    $ad_id = (int) $post->ID;
+    if ($ad_id <= 0) {
+        echo '<p>&mdash;</p>';
+        return;
+    }
+
+    $assigned = aa_ad_manager_get_assigned_placements_for_ad($ad_id);
+    $delivered = aa_ad_manager_get_delivered_placements_for_ad($ad_id, 30, 10);
+
+    echo '<p style="margin-top:0;"><strong>Assigned placements</strong></p>';
+    if (empty($assigned)) {
+        echo '<p class="description" style="margin-top:0;">None</p>';
+    } else {
+        echo '<ul class="aa-placements-list">';
+        foreach ($assigned as $pl) {
+            $title = isset($pl['title']) ? (string) $pl['title'] : '';
+            $url = isset($pl['edit_url']) ? (string) $pl['edit_url'] : '';
+            $key = isset($pl['key']) ? (string) $pl['key'] : '';
+            $label = $title ?: ($key ?: 'Placement');
+            if ($url) {
+                echo '<li><a href="' . esc_url($url) . '">' . esc_html($label) . '</a>' . ($key ? ' <span class="description">(' . esc_html($key) . ')</span>' : '') . '</li>';
+            } else {
+                echo '<li>' . esc_html($label) . ($key ? ' <span class="description">(' . esc_html($key) . ')</span>' : '') . '</li>';
+            }
+        }
+        echo '</ul>';
+    }
+
+    echo '<hr style="margin:10px 0;">';
+    echo '<p style="margin-top:0;"><strong>Delivered placements (Last 30 days)</strong></p>';
+    if (empty($delivered)) {
+        echo '<p class="description" style="margin-top:0;">No placement activity in the last 30 days.</p>';
+        if (!empty($assigned)) {
+            echo '<p class="description" style="margin-top:0;"><em>Note:</em> This ad is assigned to one or more placements, but has not recorded placement delivery recently.</p>';
+        }
+    } else {
+        echo '<ul class="aa-placements-delivered">';
+        foreach ($delivered as $row) {
+            $k = isset($row['placement_key']) ? (string) $row['placement_key'] : '';
+            $title = isset($row['placement_title']) ? (string) $row['placement_title'] : '';
+            $url = isset($row['edit_url']) ? (string) $row['edit_url'] : '';
+            $imps = isset($row['impressions']) ? (int) $row['impressions'] : 0;
+            $clks = isset($row['clicks']) ? (int) $row['clicks'] : 0;
+            $ctr = isset($row['ctr']) ? $row['ctr'] : null;
+
+            $name = $title ?: ($k ?: 'Unknown');
+            $meta = 'Imps: ' . (int) $imps . ' / Clicks: ' . (int) $clks;
+            if ($ctr !== null) {
+                $meta .= ' / CTR: ' . esc_html(number_format_i18n((float) $ctr, 2) . '%');
+            }
+
+            if ($url) {
+                echo '<li><a href="' . esc_url($url) . '">' . esc_html($name) . '</a> <span class="description">(' . esc_html($k) . ')</span><br><span class="description">' . esc_html($meta) . '</span></li>';
+            } else {
+                echo '<li>' . esc_html($name) . ' <span class="description">(' . esc_html($k) . ')</span><br><span class="description">' . esc_html($meta) . '</span></li>';
+            }
+        }
+        echo '</ul>';
+    }
 }
 
 /**
@@ -270,9 +557,10 @@ function aa_ad_manager_perf_cutoff_mysql($days) {
  *
  * @param int $ad_id
  * @param array{type:string,days?:int} $range
+ * @param string $placement_key
  * @return array{labels:string[],impressions:int[],clicks:int[],ctr:(float|null)[]}
  */
-function aa_ad_manager_perf_get_daily_series($ad_id, $range) {
+function aa_ad_manager_perf_get_daily_series($ad_id, $range, $placement_key = '') {
     global $wpdb;
     $tables = aa_ad_manager_tables();
 
@@ -285,6 +573,14 @@ function aa_ad_manager_perf_get_daily_series($ad_id, $range) {
     $clk_where = "WHERE ad_id = %d";
     $imp_params = array($ad_id);
     $clk_params = array($ad_id);
+
+    $placement_key = is_string($placement_key) ? trim($placement_key) : '';
+    if ($placement_key !== '') {
+        $imp_where .= " AND placement_key = %s";
+        $clk_where .= " AND placement_key = %s";
+        $imp_params[] = $placement_key;
+        $clk_params[] = $placement_key;
+    }
 
     $start_date = null;
     $end_date = date('Y-m-d', (int) current_time('timestamp'));
@@ -380,9 +676,10 @@ function aa_ad_manager_perf_get_daily_series($ad_id, $range) {
  *
  * @param int $ad_id
  * @param array{type:string,days?:int} $range
+ * @param string $placement_key
  * @return array{impressions:int,clicks:int,ctr:(float|null)}
  */
-function aa_ad_manager_perf_get_totals($ad_id, $range) {
+function aa_ad_manager_perf_get_totals($ad_id, $range, $placement_key = '') {
     global $wpdb;
     $tables = aa_ad_manager_tables();
 
@@ -395,6 +692,14 @@ function aa_ad_manager_perf_get_totals($ad_id, $range) {
     $clk_where = "WHERE ad_id = %d";
     $imp_params = array($ad_id);
     $clk_params = array($ad_id);
+
+    $placement_key = is_string($placement_key) ? trim($placement_key) : '';
+    if ($placement_key !== '') {
+        $imp_where .= " AND placement_key = %s";
+        $clk_where .= " AND placement_key = %s";
+        $imp_params[] = $placement_key;
+        $clk_params[] = $placement_key;
+    }
 
     if (isset($range['type']) && $range['type'] === 'days') {
         $days = isset($range['days']) ? (int) $range['days'] : 30;
@@ -423,9 +728,10 @@ function aa_ad_manager_perf_get_totals($ad_id, $range) {
  * @param int $ad_id
  * @param array{type:string,days?:int} $range
  * @param int $limit
+ * @param string $placement_key
  * @return array{items:array<int,array{label:string,url:string,clicks:int,impressions:int,ctr:(float|null)}>,top_page:string,top_ctr_page:string}
  */
-function aa_ad_manager_perf_get_top_pages($ad_id, $range, $limit = 5) {
+function aa_ad_manager_perf_get_top_pages($ad_id, $range, $limit = 5, $placement_key = '') {
     global $wpdb;
     $tables = aa_ad_manager_tables();
 
@@ -440,6 +746,14 @@ function aa_ad_manager_perf_get_top_pages($ad_id, $range, $limit = 5) {
     $clk_params = array($ad_id);
     $imp_where = "WHERE ad_id = %d";
     $imp_params = array($ad_id);
+
+    $placement_key = is_string($placement_key) ? trim($placement_key) : '';
+    if ($placement_key !== '') {
+        $clk_where .= " AND placement_key = %s";
+        $imp_where .= " AND placement_key = %s";
+        $clk_params[] = $placement_key;
+        $imp_params[] = $placement_key;
+    }
 
     if (isset($range['type']) && $range['type'] === 'days') {
         $days = isset($range['days']) ? (int) $range['days'] : 30;
@@ -579,17 +893,184 @@ function aa_ad_manager_perf_get_top_pages($ad_id, $range, $limit = 5) {
 }
 
 /**
+ * Get placement breakdown for an ad (grouped by placement_key) in a range.
+ *
+ * This intentionally ignores any placement filter (it shows all placements for the ad).
+ *
+ * @param int $ad_id
+ * @param array{type:string,days?:int} $range
+ * @param int $limit
+ * @return array<int,array{placement_key:string,placement_id:int,placement_title:string,edit_url:string,impressions:int,clicks:int,ctr:(float|null)}>
+ */
+function aa_ad_manager_perf_get_placement_breakdown($ad_id, $range, $limit = 10) {
+    global $wpdb;
+    $tables = aa_ad_manager_tables();
+
+    $ad_id = (int) $ad_id;
+    $limit = max(1, (int) $limit);
+    if ($ad_id <= 0) {
+        return array();
+    }
+
+    $imp_where = "WHERE ad_id = %d AND placement_key <> ''";
+    $clk_where = "WHERE ad_id = %d AND placement_key <> ''";
+    $imp_params = array($ad_id);
+    $clk_params = array($ad_id);
+
+    if (isset($range['type']) && $range['type'] === 'days') {
+        $days = isset($range['days']) ? (int) $range['days'] : 30;
+        $cutoff = aa_ad_manager_perf_cutoff_mysql($days);
+        $imp_where .= " AND impressed_at >= %s";
+        $clk_where .= " AND clicked_at >= %s";
+        $imp_params[] = $cutoff;
+        $clk_params[] = $cutoff;
+    }
+
+    $imp_sql = "
+        SELECT placement_key, COUNT(*) AS impressions
+        FROM {$tables['impressions']}
+        {$imp_where}
+        GROUP BY placement_key
+        ORDER BY impressions DESC
+        LIMIT %d
+    ";
+    $imp_rows = $wpdb->get_results($wpdb->prepare($imp_sql, array_merge($imp_params, array($limit))), ARRAY_A);
+
+    $clk_sql = "
+        SELECT placement_key, COUNT(*) AS clicks
+        FROM {$tables['clicks']}
+        {$clk_where}
+        GROUP BY placement_key
+    ";
+    $clk_rows = $wpdb->get_results($wpdb->prepare($clk_sql, $clk_params), ARRAY_A);
+
+    $clicks_by_key = array();
+    if (is_array($clk_rows)) {
+        foreach ($clk_rows as $row) {
+            $k = isset($row['placement_key']) ? (string) $row['placement_key'] : '';
+            if ($k === '') {
+                continue;
+            }
+            $clicks_by_key[$k] = isset($row['clicks']) ? (int) $row['clicks'] : 0;
+        }
+    }
+
+    $ordered_keys = array();
+    $by_key = array();
+    if (is_array($imp_rows)) {
+        foreach ($imp_rows as $row) {
+            $k = isset($row['placement_key']) ? (string) $row['placement_key'] : '';
+            if ($k === '') {
+                continue;
+            }
+            $ordered_keys[] = $k;
+            $imps = isset($row['impressions']) ? (int) $row['impressions'] : 0;
+            $clks = isset($clicks_by_key[$k]) ? (int) $clicks_by_key[$k] : 0;
+            $ctr = null;
+            if ($imps > 0) {
+                $ctr = ($clks / $imps) * 100;
+            }
+            $by_key[$k] = array(
+                'placement_key'   => $k,
+                'placement_id'    => 0,
+                'placement_title' => '',
+                'edit_url'        => '',
+                'impressions'     => $imps,
+                'clicks'          => $clks,
+                'ctr'             => $ctr,
+            );
+        }
+    }
+
+    $keys = array_values(array_filter(array_unique($ordered_keys)));
+    if (!empty($keys)) {
+        $meta_query = array('relation' => 'OR');
+        foreach ($keys as $k) {
+            $meta_query[] = array(
+                'key'   => 'placement_key',
+                'value' => $k,
+            );
+        }
+
+        $ids = get_posts(array(
+            'post_type'      => 'aa_placement',
+            'post_status'    => array('publish', 'draft', 'pending', 'future', 'private'),
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'meta_query'     => $meta_query,
+        ));
+
+        if (is_array($ids)) {
+            foreach ($ids as $pid) {
+                $pid = (int) $pid;
+                if ($pid <= 0) {
+                    continue;
+                }
+                $k = function_exists('get_field') ? (string) get_field('placement_key', $pid) : (string) get_post_meta($pid, 'placement_key', true);
+                $k = trim($k);
+                if ($k !== '' && isset($by_key[$k])) {
+                    $by_key[$k]['placement_id'] = $pid;
+                    $by_key[$k]['placement_title'] = (string) get_the_title($pid);
+                    $by_key[$k]['edit_url'] = (string) get_edit_post_link($pid, 'raw');
+                }
+            }
+        }
+    }
+
+    $out = array();
+    foreach ($keys as $k) {
+        if (isset($by_key[$k])) {
+            $out[] = $by_key[$k];
+        }
+    }
+    return $out;
+}
+
+/**
  * Build the full performance payload for an ad.
  *
  * @param int $ad_id
  * @param array{type:string,days?:int} $range
+ * @param string $placement_key
  * @return array<string,mixed>
  */
-function aa_ad_manager_get_ad_performance_data($ad_id, $range) {
+function aa_ad_manager_get_ad_performance_data($ad_id, $range, $placement_key = '') {
     $ad_id = (int) $ad_id;
-    $totals = aa_ad_manager_perf_get_totals($ad_id, $range);
-    $series = aa_ad_manager_perf_get_daily_series($ad_id, $range);
-    $top = aa_ad_manager_perf_get_top_pages($ad_id, $range, 5);
+    $placement_key = is_string($placement_key) ? trim($placement_key) : '';
+
+    // Dropdown options are based on recent delivered placements, with assigned placements as fallback.
+    $placement_options = array();
+    if (function_exists('aa_ad_manager_get_delivered_placements_for_ad')) {
+        $delivered = aa_ad_manager_get_delivered_placements_for_ad($ad_id, 30, 50);
+        if (is_array($delivered)) {
+            foreach ($delivered as $row) {
+                $k = isset($row['placement_key']) ? (string) $row['placement_key'] : '';
+                if ($k === '') {
+                    continue;
+                }
+                $label = isset($row['placement_title']) && $row['placement_title'] ? (string) $row['placement_title'] : $k;
+                $placement_options[$k] = $label;
+            }
+        }
+    }
+    if (empty($placement_options) && function_exists('aa_ad_manager_get_assigned_placements_for_ad')) {
+        $assigned = aa_ad_manager_get_assigned_placements_for_ad($ad_id);
+        if (is_array($assigned)) {
+            foreach ($assigned as $pl) {
+                $k = isset($pl['key']) ? (string) $pl['key'] : '';
+                if ($k === '') {
+                    continue;
+                }
+                $label = isset($pl['title']) && $pl['title'] ? (string) $pl['title'] : $k;
+                $placement_options[$k] = $label;
+            }
+        }
+    }
+
+    $totals = aa_ad_manager_perf_get_totals($ad_id, $range, $placement_key);
+    $series = aa_ad_manager_perf_get_daily_series($ad_id, $range, $placement_key);
+    $top = aa_ad_manager_perf_get_top_pages($ad_id, $range, 5, $placement_key);
+    $breakdown = aa_ad_manager_perf_get_placement_breakdown($ad_id, $range, 10);
 
     $avg_ctr = null;
     if (isset($totals['ctr'])) {
@@ -599,6 +1080,9 @@ function aa_ad_manager_get_ad_performance_data($ad_id, $range) {
     return array(
         'ad_id'   => $ad_id,
         'range'   => $range,
+        'placement_key' => $placement_key,
+        'placement_options' => $placement_options,
+        'placement_breakdown' => $breakdown,
         'totals'  => $totals,
         'series'  => $series,
         'top'     => $top,
@@ -627,7 +1111,10 @@ function aa_ad_manager_ajax_get_ad_performance() {
     $range_raw = isset($_REQUEST['range']) ? (string) $_REQUEST['range'] : '30';
     $range = aa_ad_manager_perf_parse_range($range_raw);
 
-    $payload = aa_ad_manager_get_ad_performance_data($ad_id, $range);
+    $placement_key = isset($_REQUEST['placement_key']) ? sanitize_text_field((string) $_REQUEST['placement_key']) : '';
+    $placement_key = trim($placement_key);
+
+    $payload = aa_ad_manager_get_ad_performance_data($ad_id, $range, $placement_key);
     wp_send_json_success($payload);
 }
 add_action('wp_ajax_aa_ad_manager_get_ad_performance', 'aa_ad_manager_ajax_get_ad_performance');

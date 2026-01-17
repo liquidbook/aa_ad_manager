@@ -23,6 +23,7 @@ define('AA_AD_MANAGER_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/db.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/cpt.php';
+require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/placements.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/taxonomies.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/shortcodes.php';
 require_once AA_AD_MANAGER_PLUGIN_DIR . 'includes/ad-selection.php';

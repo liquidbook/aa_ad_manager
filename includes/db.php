@@ -19,7 +19,28 @@ function aa_ad_manager_tables() {
 
 function aa_ad_manager_activate() {
     aa_ad_manager_create_tables_if_missing();
+    update_option('aa_ad_manager_db_schema_version', aa_ad_manager_get_target_db_schema_version());
 }
+
+function aa_ad_manager_get_target_db_schema_version() {
+    // Bump this string when dbDelta definitions change.
+    return '2026-01-17-placement-key';
+}
+
+/**
+ * Ensure required columns exist even if plugin was updated without reactivation.
+ */
+function aa_ad_manager_maybe_upgrade_db_schema() {
+    $current = (string) get_option('aa_ad_manager_db_schema_version', '');
+    $target = aa_ad_manager_get_target_db_schema_version();
+    if ($current === $target) {
+        return;
+    }
+
+    aa_ad_manager_create_tables_if_missing();
+    update_option('aa_ad_manager_db_schema_version', $target);
+}
+add_action('plugins_loaded', 'aa_ad_manager_maybe_upgrade_db_schema');
 
 function aa_ad_manager_create_tables_if_missing() {
     global $wpdb;
@@ -30,21 +51,25 @@ function aa_ad_manager_create_tables_if_missing() {
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         ad_id mediumint(9) NOT NULL,
         page_id mediumint(9) NOT NULL,
+        placement_key varchar(191) NOT NULL DEFAULT '',
         impressed_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
         PRIMARY KEY  (id),
         KEY ad_id (ad_id),
-        KEY page_id (page_id)
+        KEY page_id (page_id),
+        KEY placement_key (placement_key)
     ) $charset_collate;";
 
     $clicks_sql = "CREATE TABLE {$tables['clicks']} (
         id mediumint(9) NOT NULL AUTO_INCREMENT,
         ad_id mediumint(9) NOT NULL,
         page_id mediumint(9) NOT NULL,
+        placement_key varchar(191) NOT NULL DEFAULT '',
         referer_url varchar(255) NOT NULL DEFAULT '',
         clicked_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
         PRIMARY KEY  (id),
         KEY ad_id (ad_id),
-        KEY page_id (page_id)
+        KEY page_id (page_id),
+        KEY placement_key (placement_key)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -52,34 +77,40 @@ function aa_ad_manager_create_tables_if_missing() {
     dbDelta($clicks_sql);
 }
 
-function aa_ad_log_impression($ad_id, $page_id) {
+function aa_ad_log_impression($ad_id, $page_id, $placement_key = '') {
     global $wpdb;
     $tables = aa_ad_manager_tables();
+
+    $placement_key = is_string($placement_key) ? substr(sanitize_text_field($placement_key), 0, 191) : '';
 
     $wpdb->insert(
         $tables['impressions'],
         array(
             'ad_id'        => (int) $ad_id,
             'page_id'      => (int) $page_id,
+            'placement_key'=> $placement_key,
             'impressed_at' => current_time('mysql'),
         ),
-        array('%d', '%d', '%s')
+        array('%d', '%d', '%s', '%s')
     );
 }
 
-function aa_ad_log_click($ad_id, $page_id, $referer_url) {
+function aa_ad_log_click($ad_id, $page_id, $referer_url, $placement_key = '') {
     global $wpdb;
     $tables = aa_ad_manager_tables();
+
+    $placement_key = is_string($placement_key) ? substr(sanitize_text_field($placement_key), 0, 191) : '';
 
     $wpdb->insert(
         $tables['clicks'],
         array(
             'ad_id'       => (int) $ad_id,
             'page_id'     => (int) $page_id,
+            'placement_key'=> $placement_key,
             'referer_url' => is_string($referer_url) ? substr($referer_url, 0, 255) : '',
             'clicked_at'  => current_time('mysql'),
         ),
-        array('%d', '%d', '%s', '%s')
+        array('%d', '%d', '%s', '%s', '%s')
     );
 }
 
