@@ -89,6 +89,37 @@ function aa_ad_manager_enqueue_admin_assets($hook) {
         wp_enqueue_script('postbox');
         wp_add_inline_script('postbox', "jQuery(function($){ if (typeof postbox !== 'undefined') { postbox.add_postbox_toggles('aa_ad_manager_options'); } });");
     }
+
+    // Reports: only load charts on Placements drilldown view.
+    if ($page === 'aa-ad-reports') {
+        $tab = isset($_GET['tab']) ? sanitize_text_field((string) $_GET['tab']) : '';
+        $placement_key = isset($_GET['placement_key']) ? sanitize_text_field((string) $_GET['placement_key']) : '';
+        $placement_key = trim($placement_key);
+
+        if ($tab === 'placements' && $placement_key !== '') {
+            $chart_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/vendor/chart.umd.min.js';
+            $chart_js_ver = file_exists($chart_js_path) ? (string) filemtime($chart_js_path) : AA_AD_MANAGER_VERSION;
+
+            wp_enqueue_script(
+                'aa-ad-manager-chartjs',
+                AA_AD_MANAGER_PLUGIN_URL . 'assets/js/vendor/chart.umd.min.js',
+                array(),
+                $chart_js_ver,
+                true
+            );
+
+            $reports_js_path = AA_AD_MANAGER_PLUGIN_DIR . 'assets/js/ads/aa-admin-reports-placements.js';
+            $reports_js_ver = file_exists($reports_js_path) ? (string) filemtime($reports_js_path) : AA_AD_MANAGER_VERSION;
+
+            wp_enqueue_script(
+                'aa-ad-manager-admin-reports-placements',
+                AA_AD_MANAGER_PLUGIN_URL . 'assets/js/ads/aa-admin-reports-placements.js',
+                array('jquery', 'aa-ad-manager-chartjs'),
+                $reports_js_ver,
+                true
+            );
+        }
+    }
 }
 add_action('admin_enqueue_scripts', 'aa_ad_manager_enqueue_admin_assets');
 

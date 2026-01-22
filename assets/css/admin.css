@@ -172,6 +172,11 @@ button.aa-ad-thumb-link {
   display: none;
 }
 
+/* Defensive: if multiple tab classes exist, always show Performance panel on Performance tab. */
+.aa-ad-tab--performance #aa_ad_manager_performance .inside {
+  display: block !important;
+}
+
 /* Performance dashboard (aa_ads edit screen). */
 .aa-perf {
   margin-top: 6px;
@@ -320,5 +325,99 @@ button.aa-ad-thumb-link {
   margin-top: 8px;
   color: #646970;
   font-size: 12px;
+}
+
+/* Reports: filter bar + footer pagination (WP-native look) */
+.aa-ad-manager-wrap .aa-filters-card {
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 12px 0;
+}
+
+.aa-ad-manager-wrap .aa-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+}
+
+.aa-ad-manager-wrap .aa-filter label {
+  display: block;
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #646970;
+}
+
+.aa-ad-manager-wrap .aa-filter select {
+  min-width: 200px;
+  height: 34px;
+}
+
+.aa-ad-manager-wrap .aa-filter--small select {
+  min-width: 110px;
+}
+
+.aa-ad-manager-wrap .aa-filter-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.aa-ad-reports-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 10px;
+}
+
+.aa-ad-reports-footer__right {
+  margin-left: auto;
+}
+
+.aa-ad-reports-pagination ul.page-numbers {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.aa-ad-reports-pagination ul.page-numbers li {
+  margin: 0;
+}
+
+.aa-ad-reports-pagination .page-numbers a,
+.aa-ad-reports-pagination .page-numbers span {
+  display: inline-flex;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #dcdcde;
+  border-radius: 8px;
+  background: #fff;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.aa-ad-reports-pagination .page-numbers a:hover,
+.aa-ad-reports-pagination .page-numbers a:focus {
+  border-color: #2271b1;
+}
+
+.aa-ad-reports-pagination .page-numbers .current {
+  background: #2271b1;
+  border-color: #2271b1;
+  color: #fff;
 }
 

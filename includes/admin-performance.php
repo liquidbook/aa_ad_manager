@@ -94,6 +94,12 @@ function aa_ad_manager_admin_body_class_for_ad_tabs($classes) {
     }
 
     $tab = aa_ad_manager_get_current_ad_edit_tab();
+
+    // Defensive: ensure only one tab class is present. Some admin contexts/plugins can
+    // cause `admin_body_class` to be filtered multiple times or carry over custom classes.
+    $classes = preg_replace('/\saa-ad-tab--(fields|performance)\b/', '', (string) $classes);
+    $classes = trim(preg_replace('/\s+/', ' ', (string) $classes));
+
     $classes .= ' aa-ad-tab--' . $tab;
     return $classes;
 }
@@ -136,6 +142,20 @@ function aa_ad_manager_auto_unhide_performance_metabox($screen) {
         unset($hidden[$idx]);
         $hidden = array_values($hidden);
         update_user_option($user_id, $option_key, $hidden, true);
+    }
+
+    // Also un-close the box (separate per-user option) so it actually shows content.
+    // This mirrors the "unhide" behavior and avoids a confusing blank panel.
+    $closed_key = 'closedpostboxes_' . $screen->id;
+    $closed = get_user_option($closed_key, $user_id);
+    if (!is_array($closed)) {
+        $closed = array();
+    }
+    $cidx = array_search('aa_ad_manager_performance', $closed, true);
+    if ($cidx !== false) {
+        unset($closed[$cidx]);
+        $closed = array_values($closed);
+        update_user_option($user_id, $closed_key, $closed, true);
     }
 
     update_user_meta($user_id, 'aa_ad_manager_perf_box_auto_enabled', '1');
