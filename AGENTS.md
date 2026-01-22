@@ -69,6 +69,18 @@ When making changes:
 
 ---
 
+### Release packaging (ZIP)
+
+This repo includes Python scripts for producing a WordPress-installable plugin ZIP.
+
+- **Stage**: `python scripts/stage_dist.py` → outputs `distribution/agile-alliance-ad-manager/`
+- **Zip**: `python scripts/zip_dist.py` → outputs `distribution/agile-alliance-ad-manager.zip`
+- **Hybrid**: `python scripts/build_release.py` (prefers `git archive` when repo is clean; otherwise stages + zips)
+
+**Important:** WordPress expects the ZIP root to contain a single folder named `agile-alliance-ad-manager/`.
+
+---
+
 ### Engineering style / change philosophy
 - **Prefer targeted fixes** over large refactors.
 - Keep changes scoped to the smallest number of files that make the behavior correct.

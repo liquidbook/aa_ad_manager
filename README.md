@@ -75,6 +75,37 @@ The plugin defines a constant `AA_AD_MANAGER_ACTIVE`. When active, the Agile All
 
 ## Developer Workflow
 
+### Build a WordPress-installable ZIP (Windows-friendly)
+
+This repo includes Python scripts that stage a clean plugin folder and then zip it in a WordPress-compatible format.
+
+**Requirements**
+- Python 3.12+ (tested with 3.12.6)
+
+**Two-step build (recommended)**
+1) Stage runtime files into `distribution/agile-alliance-ad-manager/`:
+
+```bash
+python scripts/stage_dist.py
+```
+
+2) Create `distribution/agile-alliance-ad-manager.zip`:
+
+```bash
+python scripts/zip_dist.py
+```
+
+**One-command build (hybrid)**
+If the git working tree is clean, this prefers `git archive`. Otherwise it falls back to stage + zip:
+
+```bash
+python scripts/build_release.py
+```
+
+**Important**
+- The resulting ZIP must contain a single top-level folder named `agile-alliance-ad-manager/` (WordPress expects this structure).
+- `distribution/` is a build artifact and is intentionally gitignored.
+
 ## Analytics events (GTM/GA4)
 
 Because ads are **AJAX-injected**, GA4 “Enhanced measurement” link-click tracking may not reliably detect ad clicks. The frontend loader emits analytics signals that work with both **Google Tag Manager** and **GA4-only** setups:

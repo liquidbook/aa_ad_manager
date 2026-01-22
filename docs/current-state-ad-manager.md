@@ -4,7 +4,7 @@
 **Type:** Standalone WordPress plugin (not a theme)  
 **Core purpose:** Manage ads (creative + rules), deliver them reliably on cached pages via AJAX injection, and track impressions/clicks with placement-aware analytics.
 
-**Last updated:** 2026-01-17  
+**Last updated:** 2026-01-22  
 **Plugin version constant:** `AA_AD_MANAGER_VERSION = 0.1.0`  
 **DB schema target version:** `aa_ad_manager_db_schema_version = 2026-01-17-placement-key`
 
@@ -67,6 +67,13 @@ Frontend/admin assets:
 - Admin: `assets/js/ads/aa-admin-scripts.js`, `assets/js/ads/aa-admin-performance.js`, `assets/js/ads/aa-admin-reports-placements.js`, `assets/css/admin.css`
 - Vendor: `assets/js/vendor/chart.umd.min.js` (Chart.js bundle)
 
+Release/packaging tooling:
+
+- `scripts/stage_dist.py`: stage a clean plugin folder into `distribution/agile-alliance-ad-manager/`
+- `scripts/zip_dist.py`: zip the staged folder into a WP-installable zip
+- `scripts/build_release.py`: hybrid builder (prefers `git archive` when repo is clean; otherwise stages + zips)
+- Build output: `distribution/` (gitignored)
+
 ---
 
 ## Data model: entities and relationships
@@ -86,7 +93,8 @@ Loaded from `acf-json/group_66f94f5437d40.json`.
   - `ad_image` (required, image ID)
   - `ad_title` (required, used as `<img alt>`)
   - `ad_link` (required, URL)
-  - `ad_new_tab` (optional, boolean; controls `target="_blank"` and `rel="noopener noreferrer"`)
+  - `ad_new_tab` (optional, boolean; intended to control `target="_blank"` and `rel="noopener noreferrer"`)
+    - **Important current behavior:** the frontend click handler in `assets/js/ads/aa-ad-loader.js` calls `e.preventDefault()` and redirects with `window.location.href`, which means the link currently opens in the **same tab** even if `target="_blank"` is present.
 
 - **Eligibility + delivery rules**
   - `ad_status` (required: `active`/`inactive`)
@@ -671,16 +679,40 @@ Placements v1 is not just a new CPT—it changes the delivery and reporting mode
 
 This section captures what the plugin currently does *not* do, by design (or by current implementation stage):
 
-- **No placement-aware site-wide reporting page yet**
-  - Placement breakdown is implemented per-ad (edit screen Performance tab), but the “Reports” page aggregates by ad+page and does not include placement filters/grouping.
 - **No server-side storage of `page_type` / `page_context`**
   - They are passed to AJAX and emitted in frontend analytics payloads, but not persisted to DB schema.
+- **`ad_new_tab` is not currently honored on click**
+  - The field is stored and the server outputs `target="_blank"`, but the click handler forces same-tab navigation (see note in Ads fields).
 - **No rule engine for placements beyond assigned ads**
   - No post-type targeting, taxonomy targeting, audience rules, etc. (v1 intentionally stays simple).
 - **No auto-injection via theme hooks**
   - Placement is intended to be embedded via shortcode in Elementor/templates/blocks.
 
 ---
+
+## Release packaging: producing a WP-installable ZIP
+
+This repo includes Windows-friendly Python scripts to create a WordPress-installable zip with the correct folder structure.
+
+Output:
+
+- Staged folder: `distribution/agile-alliance-ad-manager/`
+- Installable zip: `distribution/agile-alliance-ad-manager.zip`
+
+Commands:
+
+```bash
+python scripts/stage_dist.py
+python scripts/zip_dist.py
+```
+
+Hybrid (single command):
+
+```bash
+python scripts/build_release.py
+```
+
+**Important:** WordPress expects the zip root to contain a single folder named `agile-alliance-ad-manager/` (not a flat zip, and not `distribution/...` nested).
 
 ## Reference: important hooks, actions, and endpoints
 

@@ -1,0 +1,17 @@
+# Packaging hints for `git archive`.
+# Files/directories marked `export-ignore` will not be included in archives.
+
+/.cursor export-ignore
+/.playwright-mcp export-ignore
+/docs export-ignore
+/docker-compose.yml export-ignore
+/cursorrules.md export-ignore
+/AGENTS.md export-ignore
+
+/distribution export-ignore
+/dist export-ignore
+/build export-ignore
+
+*.zip export-ignore
+*.tar.gz export-ignore
+
