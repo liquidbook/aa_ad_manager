@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Agile Alliance Ad Manager
  * Description: Extracted Ad Manager (ads CPT, campaigns/clients taxonomies, AJAX injection, impression/click tracking).
- * Version: 0.1.0
+ * Version: 0.9.0
  * Author: Agile Alliance
  * License: GPL-3.0-or-later
  */
@@ -16,7 +16,7 @@ if (!defined('AA_AD_MANAGER_ACTIVE')) {
     define('AA_AD_MANAGER_ACTIVE', true);
 }
 
-define('AA_AD_MANAGER_VERSION', '0.1.0');
+define('AA_AD_MANAGER_VERSION', '0.9.0');
 define('AA_AD_MANAGER_PLUGIN_FILE', __FILE__);
 define('AA_AD_MANAGER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('AA_AD_MANAGER_PLUGIN_URL', plugin_dir_url(__FILE__));
