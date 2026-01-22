@@ -51,6 +51,35 @@ function aa_ad_manager_sanitize_options($options) {
 
     $options['excluded_post_types'] = array_values(array_unique($excluded));
 
+    // Tracking exclusions (roles).
+    // Default: exclude Administrators from impression/click logging to protect reporting integrity.
+    $editable_roles = function_exists('get_editable_roles') ? get_editable_roles() : array();
+    $valid_roles = is_array($editable_roles) ? array_keys($editable_roles) : array();
+
+    $excluded_roles = array('administrator');
+    // Important: allow saving an intentionally-empty exclusion list (exclude nobody).
+    // Checkboxes submit nothing when all are unchecked, so the UI adds a hidden empty
+    // value to ensure the key is present on save.
+    if (array_key_exists('exclude_tracking_roles', $options)) {
+        $excluded_roles = array();
+        $raw = $options['exclude_tracking_roles'];
+        if (!is_array($raw)) {
+            $raw = array($raw);
+        }
+        foreach ($raw as $role_key) {
+            $role_key = sanitize_key((string) $role_key);
+            if ($role_key === '') {
+                continue;
+            }
+            // If roles are available, only accept valid roles. If not, accept the sanitized value.
+            if (empty($valid_roles) || in_array($role_key, $valid_roles, true)) {
+                $excluded_roles[] = $role_key;
+            }
+        }
+        $excluded_roles = array_values(array_unique($excluded_roles));
+    }
+    $options['exclude_tracking_roles'] = $excluded_roles;
+
     // Stop persisting the legacy key once saved.
     if (isset($options['reportable_post_types'])) {
         unset($options['reportable_post_types']);
@@ -128,6 +157,13 @@ function aa_ad_manager_options_page_html() {
         return;
     }
 
+    $options = get_option('aa_ad_manager_options', array());
+    $excluded_roles = isset($options['exclude_tracking_roles']) && is_array($options['exclude_tracking_roles'])
+        ? array_values(array_unique(array_map('sanitize_key', $options['exclude_tracking_roles'])))
+        : array('administrator');
+
+    $editable_roles = function_exists('get_editable_roles') ? get_editable_roles() : array();
+
     echo '<div class="wrap aa-ad-manager-wrap aa-settings-page">';
 
     echo '<div class="aa-ad-manager-header">';
@@ -154,13 +190,60 @@ function aa_ad_manager_options_page_html() {
     echo '          <h2 class="hndle ui-sortable-handle"><span>General Settings</span></h2>';
     echo '        </div>';
     echo '        <div class="inside">';
-    echo '          <div class="notice notice-info inline" style="margin: 0;">';
-    echo '            <p><strong>No settings available yet.</strong> This screen will be used for reporting configuration once the reporting model is finalized.</p>';
-    echo '            <p class="description" style="margin: 0;">Ad impressions/clicks are logged automatically when ads are served/clicked.</p>';
-    echo '          </div>';
+    echo '          <p class="description" style="margin: 0 0 10px;">Ad impressions/clicks are logged automatically when ads are served/clicked. Use the settings below to exclude staff traffic from reporting.</p>';
+    echo '          <table class="form-table" role="presentation">';
+    echo '            <tbody>';
+    echo '              <tr>';
+    echo '                <th scope="row"><label>Exclude roles from tracking</label></th>';
+    echo '                <td>';
+    echo '                  <fieldset>';
+    echo '                    <legend class="screen-reader-text"><span>Exclude roles from tracking</span></legend>';
+    echo '                    <p class="description" style="margin: 0 0 8px;">Users with the selected roles will still see ads, but their impressions and clicks will not be written to the tracking tables.</p>';
+    // Ensure the option key is present on save even if all boxes are unchecked.
+    echo '                    <input type="hidden" name="aa_ad_manager_options[exclude_tracking_roles][]" value="" />';
+
+    if (is_array($editable_roles) && !empty($editable_roles)) {
+        // Render roles in a stable, admin-friendly order: Administrator, Editor, Author, Contributor, Subscriber, then others.
+        $preferred_order = array('administrator', 'editor', 'author', 'contributor', 'subscriber');
+        $role_keys = array_keys($editable_roles);
+        usort($role_keys, function($a, $b) use ($preferred_order) {
+            $ai = array_search($a, $preferred_order, true);
+            $bi = array_search($b, $preferred_order, true);
+            $ai = ($ai === false) ? 999 : (int) $ai;
+            $bi = ($bi === false) ? 999 : (int) $bi;
+            if ($ai === $bi) {
+                return strcmp((string) $a, (string) $b);
+            }
+            return $ai - $bi;
+        });
+
+        foreach ($role_keys as $role_key) {
+            $role = $editable_roles[$role_key];
+            $label = isset($role['name']) ? (string) $role['name'] : $role_key;
+            $is_checked = in_array($role_key, $excluded_roles, true);
+
+            echo '                    <label style="display:block; margin: 0 0 6px;">';
+            echo '                      <input type="checkbox" name="aa_ad_manager_options[exclude_tracking_roles][]" value="' . esc_attr($role_key) . '" ' . checked($is_checked, true, false) . ' />';
+            echo '                      <span>' . esc_html($label) . ' <span class="description">(' . esc_html($role_key) . ')</span></span>';
+            echo '                    </label>';
+        }
+    } else {
+        echo '                    <div class="notice notice-warning inline" style="margin: 0;">';
+        echo '                      <p>Roles could not be loaded. Tracking exclusions are not configurable on this site.</p>';
+        echo '                    </div>';
+    }
+
+    echo '                    <p class="description" style="margin: 8px 0 0;">Default recommendation: exclude <strong>Administrator</strong>. Optionally exclude <strong>Editor</strong> if staff members use that role. (For testing: uncheck all roles to include staff traffic.)</p>';
+    echo '                  </fieldset>';
+    echo '                </td>';
+    echo '              </tr>';
+    echo '            </tbody>';
+    echo '          </table>';
 
     echo '        </div>';
     echo '      </div>';
+
+    submit_button('Save Settings');
 
     echo '    </div>';
     echo '  </div>';

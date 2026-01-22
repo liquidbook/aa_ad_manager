@@ -48,6 +48,8 @@ This plugin now supports a **Placement (slot/shelf) system** to control where ad
 ### Tracking requirement
 When an ad is served via a placement, impression/click logs must include `placement_key` (or a resolvable placement identifier). All placement-aware reporting assumes this exists.
 
+Note: impression/click logging may be suppressed for logged-in “staff” roles based on **Ad Manager Options** (see `aa_ad_manager_options[exclude_tracking_roles]` and `includes/db.php`).
+
 ### Reporting/query guidance
 - Prefer aggregated queries (GROUP BY placement_key) over per-placement loops.
 - Keep wp-admin list tables fast: avoid per-row DB calls; batch-load placement mappings and/or use request-level caching.

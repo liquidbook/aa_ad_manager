@@ -14,6 +14,7 @@ The **Agile Alliance Ad Manager** provides a complete subsystem for managing ban
 - **Weighted Selection:** Control display frequency using a weighting system and enforce impression limits.
 - **AJAX Delivery:** Ads are injected into pages via AJAX to bypass cache and ensure tracking triggers on every view.
 - **Comprehensive Tracking:** Custom database tables track every impression and click with precision, including `placement_key` when served via a placement.
+- **Staff Traffic Exclusions:** Optionally exclude selected logged-in roles from impression/click tracking (default: **Administrator**) via **Ad Manager → Ad Manager Options**.
 - **Admin Reports:** Placement-aware Reports page with filters (client/campaign/date range/placement), multiple group-by modes, KPIs, Top lists, and CSV export.
 - **Per-ad Performance (wp-admin):** Detailed charts and placement breakdown live on the individual ad edit screen (Performance tab).
 - **Shortcode Integration:** Simple shortcodes for easy placement in Elementor or standard WordPress content.

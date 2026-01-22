@@ -206,6 +206,17 @@ This is important in real deployments because “updated plugin files without de
 - **Click** is logged server-side in `aa_ad_manager_ajax_log_click()`:
   - `aa_ad_log_click($ad_id, $page_id, $referer_url, $placement_key)`
 
+### Staff traffic exclusions (role-based)
+
+To protect reporting integrity, tracking writes can exclude logged-in “staff” roles:
+
+- **Setting**: `aa_ad_manager_options[exclude_tracking_roles]` (role slugs)
+  - Default: `administrator`
+  - Can be configured in wp-admin under **Ad Manager → Ad Manager Options**
+- **Enforcement point**: `includes/db.php`
+  - `aa_ad_log_impression()` / `aa_ad_log_click()` early-return when the current user’s role is excluded.
+  - A filter hook `aa_ad_manager_should_log_tracking_event` can override the decision.
+
 ### Important: `page_type` and `page_context`
 
 The frontend passes `page_type` and `page_context` through AJAX, but the server code explicitly treats them as “accepted but ignored” because production/staging schema did not include columns for them. They are still available in frontend analytics payloads (GTM/GA4), but not persisted in DB tables.
@@ -478,11 +489,12 @@ Admin submenu: “Ad Manager Options” under Ad Manager.
 Current behavior:
 
 - The UI is intentionally minimal and WP-native (metabox look).
-- It currently shows “No settings available yet” plus a note that impressions/clicks are logged automatically.
+- It allows configuring **tracking exclusions** so selected logged-in roles (default: **Administrator**) do not write impressions/clicks into the tracking tables.
 
 Underlying stored options:
 
 - `aa_ad_manager_options[excluded_post_types]` exists but is not exposed in the UI yet.
+- `aa_ad_manager_options[exclude_tracking_roles]` stores a list of role slugs to exclude from tracking writes.
 - There is back-compat migration logic for a legacy `reportable_post_types` key:
   - if present, it is converted into an exclusion list then removed.
 

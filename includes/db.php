@@ -77,7 +77,48 @@ function aa_ad_manager_create_tables_if_missing() {
     dbDelta($clicks_sql);
 }
 
+/**
+ * Determine whether the current request should be logged for tracking.
+ *
+ * Default: exclude Administrators from tracking to avoid polluting reporting with staff activity.
+ * Configurable via Ad Manager Options: `aa_ad_manager_options[exclude_tracking_roles]`.
+ */
+function aa_ad_manager_should_log_tracking_event($event_type = '') {
+    $event_type = is_string($event_type) ? sanitize_key($event_type) : '';
+
+    $should_log = true;
+
+    if (is_user_logged_in()) {
+        $options = get_option('aa_ad_manager_options', array());
+        $excluded_roles = isset($options['exclude_tracking_roles']) && is_array($options['exclude_tracking_roles'])
+            ? array_values(array_unique(array_map('sanitize_key', $options['exclude_tracking_roles'])))
+            : array('administrator');
+
+        $user = wp_get_current_user();
+        $user_roles = (is_object($user) && isset($user->roles) && is_array($user->roles)) ? $user->roles : array();
+
+        if (!empty($excluded_roles) && !empty($user_roles)) {
+            $intersect = array_intersect($excluded_roles, $user_roles);
+            if (!empty($intersect)) {
+                $should_log = false;
+            }
+        }
+    }
+
+    /**
+     * Filter: allow overriding the tracking decision.
+     *
+     * @param bool   $should_log Whether to log this event.
+     * @param string $event_type Event type (e.g. 'impression' or 'click').
+     */
+    return (bool) apply_filters('aa_ad_manager_should_log_tracking_event', $should_log, $event_type);
+}
+
 function aa_ad_log_impression($ad_id, $page_id, $placement_key = '') {
+    if (!aa_ad_manager_should_log_tracking_event('impression')) {
+        return;
+    }
+
     global $wpdb;
     $tables = aa_ad_manager_tables();
 
@@ -96,6 +137,10 @@ function aa_ad_log_impression($ad_id, $page_id, $placement_key = '') {
 }
 
 function aa_ad_log_click($ad_id, $page_id, $referer_url, $placement_key = '') {
+    if (!aa_ad_manager_should_log_tracking_event('click')) {
+        return;
+    }
+
     global $wpdb;
     $tables = aa_ad_manager_tables();
 
